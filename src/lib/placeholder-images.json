@@ -1,3 +1,46 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "admin",
+      "description": "An administrator at a computer",
+      "imageUrl": "https://picsum.photos/seed/admin/100/100",
+      "imageHint": "administrator computer"
+    },
+    {
+      "id": "analyst",
+      "description": "An analyst looking at charts",
+      "imageUrl": "https://picsum.photos/seed/analyst/100/100",
+      "imageHint": "analyst charts"
+    },
+    {
+      "id": "athlete",
+      "description": "An athlete training",
+      "imageUrl": "https://picsum.photos/seed/athlete/100/100",
+      "imageHint": "athlete training"
+    },
+    {
+      "id": "athlete1",
+      "description": "A male athlete focused on training",
+      "imageUrl": "https://picsum.photos/seed/alex/100/100",
+      "imageHint": "male athlete"
+    },
+    {
+      "id": "athlete2",
+      "description": "A female athlete running",
+      "imageUrl": "https://picsum.photos/seed/maria/100/100",
+      "imageHint": "female runner"
+    },
+    {
+      "id": "athlete3",
+      "description": "An athlete lifting weights",
+      "imageUrl": "https://picsum.photos/seed/chen/100/100",
+      "imageHint": "weightlifter"
+    },
+    {
+      "id": "workout-hero",
+      "description": "A dramatic shot of a gym interior.",
+      "imageUrl": "https://picsum.photos/seed/gym/1200/400",
+      "imageHint": "gym interior"
+    }
+  ]
 }
