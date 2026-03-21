@@ -6,7 +6,28 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { MainNav } from '@/components/main-nav';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase';
-import { LayoutProvider } from '@/components/layout-provider';
+import { LayoutProvider, useLayout } from '@/components/layout-provider';
+import { MobileFooter } from '@/components/mobile-footer';
+import { cn } from '@/lib/utils';
+
+function DashboardContent({ children }: { children: React.ReactNode }) {
+  const { layout } = useLayout();
+  return (
+    <>
+      <div className="flex h-screen">
+        <MainNav />
+        <SidebarInset className={cn(
+            "p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto",
+            layout === 'grid' && 'pb-24 md:pb-8' // Padding for mobile footer
+        )}>
+          {children}
+        </SidebarInset>
+      </div>
+      {layout === 'grid' && <MobileFooter />}
+    </>
+  );
+}
+
 
 export default function DashboardLayout({
   children,
@@ -36,12 +57,9 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <LayoutProvider>
-        <div className="flex h-screen">
-          <MainNav />
-          <SidebarInset className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto">
-            {children}
-          </SidebarInset>
-        </div>
+        <DashboardContent>
+          {children}
+        </DashboardContent>
       </LayoutProvider>
     </SidebarProvider>
   );
