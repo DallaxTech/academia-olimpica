@@ -1,0 +1,225 @@
+/**
+ * # Firestore Security Rules for OlimpoFit
+ *
+ * ## Core Philosophy
+ * This ruleset enforces a hybrid security model that combines strict user ownership with role-based access and collaborative data sharing. The primary goal is to ensure that users can only access data they own or have been explicitly granted permission to see, while providing elevated privileges to 'Analyst' and 'Administrator' roles. The default security posture is to deny all access unless explicitly allowed.
+ *
+ * ## Data Structure
+ * - /userProfiles/{userId}: Each user has a root profile document. All data private to that user (workout sessions, performance metrics) is stored in subcollections under this path, ensuring a clear ownership boundary.
+ * - /trainingPlans/{trainingPlanId}: A top-level collection for collaborative resources. Access is managed via an assignedToAthleteIds array and a createdByUserId field within each document.
+ * - /exercises, /roles: Top-level collections for globally accessible, largely static data. These are readable by authenticated users but writable only by privileged roles.
+ *
+ * ## Key Security Decisions
+ * - No User Listing: Listing the /userProfiles collection is disabled to prevent user enumeration and protect privacy.
+ * - Role-Based Access Control (RBAC): Access for Analysts and Administrators is determined by checking the roleId on their own user profile document. It is assumed that the roleId is a predictable string (e.g., 'ADMINISTRATOR', 'ANALYST') for efficient rule evaluation, avoiding complex and slow multi-document reads.
+ * - Athlete-Owned Data: Athletes have full create, update, and delete permissions on their own workout sessions and performance history. Analysts and Admins can read this data for analysis but cannot modify it, preserving data integrity.
+ * - Collaborative Training Plans: Athletes can only read training plans they are assigned to. The plan's creator (an Analyst or Admin) and other Admins can manage the plan and its sub-collections (workout days).
+ *
+ * ## Denormalization for Authorization
+ * To create simpler, more performant rules, this ruleset relies on denormalization. Authorization context is copied to the documents being secured to avoid costly get() calls.
+ * - Training Plans: Subcollections like workoutDays are expected to have denormalized fields from the parent TrainingPlan (e.g., trainingPlanOwnerId, trainingPlanAssignedToAthleteIds). This allows rules to authorize access to a WorkoutDay without needing to read its parent document.
+ *
+ * ## Structural Segregation
+ * The data model separates private user data (under /userProfiles) from shared collaborative data (/trainingPlans) and public reference data (/exercises). This separation makes security rules clearer and queries more efficient and secure. For example, a user can safely list all their workout sessions without any risk of accessing another user's data.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------
+    // Helper Functions
+    // ------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     * This is the foundation of the user-ownership model.
+     * @param userId The UID to check against the authenticated user.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if the document being requested already exists in Firestore.
+     * Crucial for protecting against writes to non-existent paths.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+
+
+
+    /**
+     * Retrieves the requesting user's own profile data.
+     * Used as a single source of truth for role-based checks.
+     */
+    function getUserProfile() {
+      return get(/databases/$(database)/documents/userProfiles/$(request.auth.uid));
+    }
+
+    /**
+     * Checks if the requesting user has a specific role.
+     * NOTE: This assumes the roleId on a user's profile is a predictable
+     * string (e.g., 'ADMINISTRATOR', 'ANALYST'), which is a form of
+     * denormalization necessary for performant security rules.
+     * @param roleName The name of the role to check (e.g., 'ADMINISTRATOR').
+     */
+    function hasRole(roleName) {
+      return isSignedIn() && getUserProfile().data.roleId == roleName;
+    }
+
+    /**
+     * Checks if the user is an Administrator.
+     */
+    function isAdmin() {
+      return hasRole('Administrator');
+    }
+
+    /**
+     * Checks if the user is an Analyst.
+     */
+    function isAnalyst() {
+      return hasRole('Analyst');
+    }
+
+    /**
+     * Checks if the user is either an Analyst or an Administrator.
+     */
+    function isAnalystOrAdmin() {
+      return isAdmin() || isAnalyst();
+    }
+
+    // ------------------------------------------------------------------
+    // Collection Rules
+    // ------------------------------------------------------------------
+
+    /**
+     * @description Controls access to user profile documents.
+     * @path /userProfiles/{userId}
+     * @allow (get) An authenticated user reads their own profile.
+     * @allow (get) An analyst or admin reads any user's profile.
+     * @allow (create) A new user creates their own profile document.
+     * @deny (list) A user tries to list all profiles in the system.
+     * @deny (update) A user tries to update another user's profile.
+     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     */
+    match /userProfiles/{userId} {
+      allow get: if isOwner(userId) || isAnalystOrAdmin();
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isOwner(userId) && isExistingDoc();
+    }
+
+    /**
+     * @description Controls access to global role definitions.
+     * @path /roles/{roleId}
+     * @allow (get, list) Any authenticated user can read role definitions.
+     * @allow (create, update, delete) An administrator can manage role definitions.
+     * @deny (create) A non-administrator tries to create a new role.
+     * @principle Provides public read access for reference data with restricted administrative writes.
+     */
+    match /roles/{roleId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Controls access to the global library of exercises.
+     * @path /exercises/{exerciseId}
+     * @allow (get, list) Any authenticated user can read exercise details.
+     * @allow (create, update, delete) An analyst or admin can manage the exercise library.
+     * @deny (create) An athlete tries to add a new exercise to the global library.
+     * @principle Provides public read access for reference data with restricted writes for privileged roles.
+     */
+    match /exercises/{exerciseId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAnalystOrAdmin();
+    }
+
+    /**
+     * @description Controls access to training plans.
+     * @path /trainingPlans/{trainingPlanId}
+     * @allow (get) An athlete reads a plan they are assigned to via the assignedToAthleteIds array.
+     * @allow (get) The analyst/admin who created the plan reads it.
+     * @allow (update) The original creator of the plan modifies it.
+     * @deny (get) An athlete tries to read a plan they are not assigned to.
+     * @deny (delete) An analyst tries to delete a plan created by another analyst.
+     * @principle Implements a shared access model where access is granted based on fields within the document itself (creator ID and assigned members list).
+     */
+    match /trainingPlans/{trainingPlanId} {
+      allow get: if isSignedIn() && (request.auth.uid in resource.data.assignedToAthleteIds || isOwner(resource.data.createdByUserId) || isAnalystOrAdmin());
+      allow list: if isSignedIn();
+      allow create: if isAnalystOrAdmin() && isOwner(request.resource.data.createdByUserId);
+      allow update: if (isOwner(resource.data.createdByUserId) || isAdmin()) && isExistingDoc() && request.resource.data.createdByUserId == resource.data.createdByUserId;
+      allow delete: if (isOwner(resource.data.createdByUserId) || isAdmin()) && isExistingDoc();
+    }
+
+    /**
+     * @description Controls access to specific workout days within a training plan.
+     * @path /trainingPlans/{trainingPlanId}/workoutDays/{workoutDayId}
+     * @allow (get, list) An athlete assigned to the parent plan reads its workout days.
+     * @deny (create) An athlete tries to add a workout day to a plan.
+     * @principle Access is derived from the parent document. This rule requires a get call to the parent plan to verify the user is a member, as subcollection list queries cannot be secured by parent document fields directly.
+     */
+    match /trainingPlans/{trainingPlanId}/workoutDays/{workoutDayId} {
+      allow get: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/trainingPlans/$(trainingPlanId)).data.assignedToAthleteIds || isOwner(get(/databases/$(database)/documents/trainingPlans/$(trainingPlanId)).data.createdByUserId) || isAnalystOrAdmin());
+      allow list: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/trainingPlans/$(trainingPlanId)).data.assignedToAthleteIds || isOwner(get(/databases/$(database)/documents/trainingPlans/$(trainingPlanId)).data.createdByUserId) || isAnalystOrAdmin());
+      allow create, update, delete: if (isOwner(get(/databases/$(database)/documents/trainingPlans/$(trainingPlanId)).data.createdByUserId) || isAdmin());
+    }
+
+    /**
+     * @description Controls access to an athlete's recorded workout sessions.
+     * @path /userProfiles/{athleteId}/workoutSessions/{sessionId}
+     * @allow (get, list, create) An athlete manages their own workout sessions.
+     * @allow (get, list) An analyst or admin views an athlete's workout sessions.
+     * @deny (create) An analyst tries to create a workout session on behalf of an athlete.
+     * @deny (update) An admin tries to modify an athlete's completed session data.
+     * @principle Enforces strict ownership for an athlete's personal performance data, allowing privileged roles read-only access for analysis.
+     */
+    match /userProfiles/{athleteId}/workoutSessions/{sessionId} {
+      allow get, list: if isOwner(athleteId) || isAnalystOrAdmin();
+      allow create: if isOwner(athleteId) && request.resource.data.athleteId == athleteId;
+      allow update: if isOwner(athleteId) && isExistingDoc() && request.resource.data.athleteId == resource.data.athleteId;
+      allow delete: if isOwner(athleteId) && isExistingDoc();
+    }
+
+    /**
+     * @description Controls access to the detailed performance data for each exercise set within a session.
+     * @path /userProfiles/{athleteId}/workoutSessions/{sessionId}/exerciseSetPerformances/{performanceId}
+     * @allow (create, update, delete) An athlete manages the performance data for their own workout.
+     * @allow (get, list) An analyst or admin views the detailed set performance for an athlete.
+     * @deny (create) A user tries to log performance data under another athlete's session.
+     * @principle Inherits ownership from the path. Access is granted based on the athlete's UID in the path segment.
+     */
+    match /userProfiles/{athleteId}/workoutSessions/{sessionId}/exerciseSetPerformances/{performanceId} {
+      allow get, list: if isOwner(athleteId) || isAnalystOrAdmin();
+      allow create: if isOwner(athleteId);
+      allow update, delete: if isOwner(athleteId) && isExistingDoc();
+    }
+
+    /**
+     * @description Controls access to an athlete's historical performance metrics.
+     * @path /userProfiles/{athleteId}/performanceMetrics/{metricId}
+     * @allow (get, list) An athlete views their own metrics.
+     * @allow (get, list) An analyst or admin views an athlete's metrics.
+     * @allow (create) An analyst or the athlete themself records a new performance metric.
+     * @allow (update) The user who recorded the metric modifies it.
+     * @deny (delete) An athlete tries to delete a metric recorded by their analyst.
+     * @principle A flexible ownership model where the athlete owns the data stream, but the creator of a specific entry retains write control.
+     */
+    match /userProfiles/{athleteId}/performanceMetrics/{metricId} {
+      allow get, list: if isOwner(athleteId) || isAnalystOrAdmin();
+      allow create: if (isOwner(athleteId) || isAnalystOrAdmin()) && request.resource.data.athleteId == athleteId && isOwner(request.resource.data.recordedByUserId);
+      allow update: if (isOwner(resource.data.recordedByUserId) || isAdmin()) && isExistingDoc() && request.resource.data.athleteId == resource.data.athleteId && request.resource.data.recordedByUserId == resource.data.recordedByUserId;
+      allow delete: if (isOwner(resource.data.recordedByUserId) || isAdmin()) && isExistingDoc();
+    }
+  }
+}

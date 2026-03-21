@@ -1,0 +1,512 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user within the OlimpoFit application, encompassing athletes, analysts, and administrators. This entity stores core user information and links to their assigned role.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address, used for identification and communication.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the user."
+        },
+        "roleId": {
+          "type": "string",
+          "description": "Reference to the Role entity, defining the user's access level and permissions. (Relationship: Role 1:N UserProfile)"
+        },
+        "registrationDate": {
+          "type": "string",
+          "description": "The date and time when the user's profile was created.",
+          "format": "date-time"
+        },
+        "lastLoginDate": {
+          "type": "string",
+          "description": "The date and time of the user's last successful login.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "firstName",
+        "lastName",
+        "roleId",
+        "registrationDate"
+      ]
+    },
+    "Role": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Role",
+      "type": "object",
+      "description": "Defines the access levels and granular permissions within the OlimpoFit application (e.g., Athlete, Analyst, Administrator).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Role entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The unique name of the role (e.g., 'Athlete', 'Analyst', 'Administrator')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the permissions and responsibilities associated with this role."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description"
+      ]
+    },
+    "TrainingPlan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TrainingPlan",
+      "type": "object",
+      "description": "Represents a comprehensive training program designed for an athlete or a group of athletes, consisting of multiple workout days.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the TrainingPlan entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the training plan."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the training plan's goals and overall structure."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The calendar date when the training plan is scheduled to begin.",
+          "format": "date"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The calendar date when the training plan is scheduled to end.",
+          "format": "date"
+        },
+        "assignedToAthleteIds": {
+          "type": "array",
+          "description": "References to UserProfile entities (athletes) who are assigned this training plan. (Relationship: UserProfile N:N TrainingPlan)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdByUserId": {
+          "type": "string",
+          "description": "Reference to the UserProfile (Analyst or Administrator) who initially created this training plan. (Relationship: UserProfile 1:N TrainingPlan)"
+        },
+        "creationDate": {
+          "type": "string",
+          "description": "The date and time when this training plan was created.",
+          "format": "date-time"
+        },
+        "lastModifiedByUserId": {
+          "type": "string",
+          "description": "Reference to the UserProfile (Analyst or Administrator) who last modified this training plan. (Relationship: UserProfile 1:N TrainingPlan)"
+        },
+        "lastModifiedDate": {
+          "type": "string",
+          "description": "The date and time when this training plan was last modified.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "startDate",
+        "endDate",
+        "createdByUserId",
+        "creationDate"
+      ]
+    },
+    "WorkoutDay": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WorkoutDay",
+      "type": "object",
+      "description": "Represents a specific day's workout within a larger training plan, detailing the exercises to be performed on that day.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the WorkoutDay entity."
+        },
+        "trainingPlanId": {
+          "type": "string",
+          "description": "Reference to the TrainingPlan this workout day belongs to. (Relationship: TrainingPlan 1:N WorkoutDay)"
+        },
+        "dayNumber": {
+          "type": "number",
+          "description": "The sequential number of the day within the training plan (e.g., Day 1, Day 2)."
+        },
+        "theme": {
+          "type": "string",
+          "description": "A descriptive theme or focus for the workout day (e.g., 'Leg Day', 'Upper Body Strength', 'Cardio Endurance')."
+        },
+        "exerciseIds": {
+          "type": "array",
+          "description": "References to Exercise entities included in this specific workout day. (Relationship: Exercise N:N WorkoutDay)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "trainingPlanId",
+        "dayNumber",
+        "theme",
+        "exerciseIds"
+      ]
+    },
+    "Exercise": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Exercise",
+      "type": "object",
+      "description": "Represents a single physical exercise with its detailed description, which can be part of multiple workout days or training plans.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Exercise entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The common name of the exercise (e.g., 'Barbell Squat', 'Push-up', 'Treadmill Run')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of how to properly perform the exercise, including form tips and common mistakes."
+        },
+        "targetMuscles": {
+          "type": "array",
+          "description": "A list of primary muscle groups targeted by this exercise (e.g., 'Quadriceps', 'Glutes', 'Triceps').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "equipmentNeeded": {
+          "type": "array",
+          "description": "A list of equipment required to perform the exercise (e.g., 'Barbell', 'Dumbbells', 'Resistance Bands', 'None').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "videoUrl": {
+          "type": "string",
+          "description": "An optional URL to a video demonstrating the exercise technique.",
+          "format": "uri"
+        },
+        "aiRecommendations": {
+          "type": "string",
+          "description": "AI-generated personalized exercise variations, modifications, or tips related to this exercise, based on athlete data."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "targetMuscles"
+      ]
+    },
+    "AthleteWorkoutSession": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AthleteWorkoutSession",
+      "type": "object",
+      "description": "Records an athlete's completion and performance for a specific workout day within a training plan, tracking their progress.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the AthleteWorkoutSession entity."
+        },
+        "athleteId": {
+          "type": "string",
+          "description": "Reference to the UserProfile (athlete) who performed this workout session. (Relationship: UserProfile 1:N AthleteWorkoutSession)"
+        },
+        "workoutDayId": {
+          "type": "string",
+          "description": "Reference to the WorkoutDay that was performed in this session. (Relationship: WorkoutDay 1:N AthleteWorkoutSession)"
+        },
+        "sessionDate": {
+          "type": "string",
+          "description": "The date and time when the workout session was performed.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The completion status of the session (e.g., 'Completed', 'Partially Completed', 'Skipped', 'Planned')."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes or feedback from the athlete regarding the session (e.g., 'Felt strong today', 'Legs were tired')."
+        },
+        "overallRating": {
+          "type": "number",
+          "description": "An optional rating (e.g., 1-5) given by the athlete for the session's perceived effort or quality."
+        }
+      },
+      "required": [
+        "id",
+        "athleteId",
+        "workoutDayId",
+        "sessionDate",
+        "status"
+      ]
+    },
+    "ExerciseSetPerformance": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ExerciseSetPerformance",
+      "type": "object",
+      "description": "Records the detailed performance of an athlete for a specific set of an exercise during a workout session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ExerciseSetPerformance entity."
+        },
+        "athleteWorkoutSessionId": {
+          "type": "string",
+          "description": "Reference to the AthleteWorkoutSession this performance record belongs to. (Relationship: AthleteWorkoutSession 1:N ExerciseSetPerformance)"
+        },
+        "exerciseId": {
+          "type": "string",
+          "description": "Reference to the Exercise that was performed in this set. (Relationship: Exercise 1:N ExerciseSetPerformance)"
+        },
+        "setNumber": {
+          "type": "number",
+          "description": "The sequential number of the set within the exercise (e.g., 1, 2, 3)."
+        },
+        "repetitions": {
+          "type": "number",
+          "description": "The number of repetitions performed in this set."
+        },
+        "weightKg": {
+          "type": "number",
+          "description": "The weight lifted in kilograms for this set (optional, for weight-based exercises)."
+        },
+        "durationSeconds": {
+          "type": "number",
+          "description": "The duration in seconds for this set (optional, for timed exercises like planks or holds)."
+        },
+        "distanceMeters": {
+          "type": "number",
+          "description": "The distance covered in meters for this set (optional, for distance-based exercises like running intervals)."
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Indicates whether this specific set was completed as planned or attempted."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes specific to the performance of this set (e.g., 'Struggled on last rep', 'Good form throughout')."
+        }
+      },
+      "required": [
+        "id",
+        "athleteWorkoutSessionId",
+        "exerciseId",
+        "setNumber",
+        "completed"
+      ]
+    },
+    "PerformanceMetric": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PerformanceMetric",
+      "type": "object",
+      "description": "Stores historical performance data and specific metrics for athletes, allowing for progress monitoring over time.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the PerformanceMetric entity."
+        },
+        "athleteId": {
+          "type": "string",
+          "description": "Reference to the UserProfile (athlete) whose metric is being recorded. (Relationship: UserProfile 1:N PerformanceMetric)"
+        },
+        "metricName": {
+          "type": "string",
+          "description": "The name of the performance metric (e.g., 'Max Bench Press', '5k Run Time', 'Vertical Jump Height', 'Body Weight')."
+        },
+        "value": {
+          "type": "number",
+          "description": "The measured value of the performance metric."
+        },
+        "unit": {
+          "type": "string",
+          "description": "The unit of measurement for the value (e.g., 'kg', 'minutes', 'cm', 'seconds')."
+        },
+        "measurementDate": {
+          "type": "string",
+          "description": "The date and time when the measurement was taken.",
+          "format": "date-time"
+        },
+        "recordedByUserId": {
+          "type": "string",
+          "description": "Reference to the UserProfile (Analyst or Administrator) who recorded this metric. (Relationship: UserProfile 1:N PerformanceMetric)"
+        }
+      },
+      "required": [
+        "id",
+        "athleteId",
+        "metricName",
+        "value",
+        "unit",
+        "measurementDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/userProfiles/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores individual user profile information. The 'userId' wildcard directly corresponds to Firebase Authentication UIDs. Access is primarily controlled by the user's UID matching the path, and by their assigned 'roleId' (stored within this document). Includes 'roleId' for DBAC authorization."
+        }
+      },
+      {
+        "path": "/roles/{roleId}",
+        "definition": {
+          "entityName": "Role",
+          "schema": {
+            "$ref": "#/backend/entities/Role"
+          },
+          "description": "Defines global roles and their descriptions. This collection is for static role definitions, not user assignments. Readable by all authenticated users to understand roles, writable by administrators."
+        }
+      },
+      {
+        "path": "/exercises/{exerciseId}",
+        "definition": {
+          "entityName": "Exercise",
+          "schema": {
+            "$ref": "#/backend/entities/Exercise"
+          },
+          "description": "Stores global exercise definitions. Readable by all authenticated users (athletes, analysts, administrators). Writable by analysts and administrators."
+        }
+      },
+      {
+        "path": "/trainingPlans/{trainingPlanId}",
+        "definition": {
+          "entityName": "TrainingPlan",
+          "schema": {
+            "$ref": "#/backend/entities/TrainingPlan"
+          },
+          "description": "Stores comprehensive training programs. Includes denormalized 'createdByUserId' (for ownership by analyst/admin) and 'assignedToAthleteIds' (for athlete access) for authorization independence.",
+          "params": [
+            {
+              "name": "trainingPlanId",
+              "description": "The unique identifier for a specific training plan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/trainingPlans/{trainingPlanId}/workoutDays/{workoutDayId}",
+        "definition": {
+          "entityName": "WorkoutDay",
+          "schema": {
+            "$ref": "#/backend/entities/WorkoutDay"
+          },
+          "description": "Stores specific workout days belonging to a training plan. Includes denormalized 'trainingPlanOwnerId' and 'trainingPlanAssignedToAthleteIds' (copied from the parent TrainingPlan) for authorization independence.",
+          "params": [
+            {
+              "name": "trainingPlanId",
+              "description": "The unique identifier of the parent training plan."
+            },
+            {
+              "name": "workoutDayId",
+              "description": "The unique identifier for a specific workout day within the training plan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/userProfiles/{athleteId}/workoutSessions/{sessionId}",
+        "definition": {
+          "entityName": "AthleteWorkoutSession",
+          "schema": {
+            "$ref": "#/backend/entities/AthleteWorkoutSession"
+          },
+          "description": "Records an athlete's completed workout sessions. The 'athleteId' in the path matches the 'athleteId' field in the document, establishing path-based ownership. Accessible by the athlete, analysts, and administrators.",
+          "params": [
+            {
+              "name": "athleteId",
+              "description": "The unique identifier of the athlete who performed this workout session."
+            },
+            {
+              "name": "sessionId",
+              "description": "The unique identifier for a specific athlete workout session."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/userProfiles/{athleteId}/workoutSessions/{sessionId}/exerciseSetPerformances/{performanceId}",
+        "definition": {
+          "entityName": "ExerciseSetPerformance",
+          "schema": {
+            "$ref": "#/backend/entities/ExerciseSetPerformance"
+          },
+          "description": "Records detailed performance for each exercise set within an athlete's workout session. Includes denormalized 'athleteId' (copied from the parent AthleteWorkoutSession) for authorization independence.",
+          "params": [
+            {
+              "name": "athleteId",
+              "description": "The unique identifier of the athlete for this performance record."
+            },
+            {
+              "name": "sessionId",
+              "description": "The unique identifier of the parent athlete workout session."
+            },
+            {
+              "name": "performanceId",
+              "description": "The unique identifier for a specific exercise set performance record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/userProfiles/{athleteId}/performanceMetrics/{metricId}",
+        "definition": {
+          "entityName": "PerformanceMetric",
+          "schema": {
+            "$ref": "#/backend/entities/PerformanceMetric"
+          },
+          "description": "Stores historical performance data and metrics for athletes. The 'athleteId' in the path matches the 'athleteId' field in the document, establishing path-based ownership. Also includes 'recordedByUserId' for analyst/admin attribution. Accessible by the athlete, analysts, and administrators.",
+          "params": [
+            {
+              "name": "athleteId",
+              "description": "The unique identifier of the athlete whose metric is being recorded."
+            },
+            {
+              "name": "metricId",
+              "description": "The unique identifier for a specific performance metric record."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The proposed Firestore structure for OlimpoFit is designed to meet stringent security, scalability, and debuggability requirements, prioritizing Authorization Independence and Queryable Authorization Patterns (QAPs). \n\n**Authorization Independence:** This is achieved primarily through strategic denormalization. For any subcollection whose access would typically depend on its parent document's attributes, the necessary authorization context (e.g., owner ID, member IDs, assigned athlete IDs) is explicitly copied down to each document within that subcollection. For example:\n*   Documents in `/trainingPlans/{trainingPlanId}/workoutDays/{workoutDayId}` will denormalize `trainingPlanOwnerId` (from `TrainingPlan.createdByUserId`) and `trainingPlanAssignedToAthleteIds` (from `TrainingPlan.assignedToAthleteIds`). This eliminates the need for expensive and non-atomic `get()` calls to the parent `TrainingPlan` document within security rules when authorizing access to `WorkoutDay` documents.\n*   Similarly, `ExerciseSetPerformance` documents in `/userProfiles/{athleteId}/workoutSessions/{sessionId}/exerciseSetPerformances/{performanceId}` will denormalize the `athleteId` from their parent `AthleteWorkoutSession`. This allows rules to evaluate ownership and access directly from the `ExerciseSetPerformance` document, supporting atomic operations and simpler rule logic.\n\nThis denormalization ensures that security rules can always evaluate authorization based solely on the `request.auth.uid` and the `resource.data` of the document being accessed, promoting atomic operations and simplifying rule debugging.\n\n**Queryable Authorization Patterns (QAPs):** The structure facilitates QAPs by ensuring that all documents within a given collection or subcollection share a homogeneous security posture. This is a direct application of the 'Structural Segregation' mandate. For instance:\n*   `userProfiles/{userId}` ensures that an authenticated user can perform `list` queries on their own data (e.g., `workoutSessions`, `performanceMetrics`) by simply filtering on `request.auth.uid` matching the path wildcard. This allows clients to query directly without needing server-side filtering after retrieving data, which Firestore rules explicitly prevent.\n*   `trainingPlans/{trainingPlanId}` documents contain `createdByUserId` and `assignedToAthleteIds`. This allows athletes to `list` only the plans they are assigned to (e.g., `where('assignedToAthleteIds', 'array-contains', request.auth.uid)`), and analysts/administrators to `list` all plans (with a rule checking their role) because the authorization fields are present on each document.\n*   Global collections like `/exercises` and `/roles` are designed for broad read access by relevant user types (all authenticated for exercises, specific roles for write), supporting efficient `list` operations for these static data sets.\n\nBy following path-based ownership for user-specific data and denormalizing authorization context for collaborative and hierarchical data, the system ensures that security rules are straightforward, performant, and support robust client-side queries without security loopholes, directly addressing the core design principles."
+  }
+}
