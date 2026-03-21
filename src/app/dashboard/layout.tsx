@@ -6,6 +6,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { MainNav } from '@/components/main-nav';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase';
+import { LayoutProvider } from '@/components/layout-provider';
 
 export default function DashboardLayout({
   children,
@@ -34,12 +35,14 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen">
-        <MainNav />
-        <SidebarInset className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto">
-          {children}
-        </SidebarInset>
-      </div>
+      <LayoutProvider>
+        <div className="flex h-screen">
+          <MainNav />
+          <SidebarInset className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto">
+            {children}
+          </SidebarInset>
+        </div>
+      </LayoutProvider>
     </SidebarProvider>
   );
 }
