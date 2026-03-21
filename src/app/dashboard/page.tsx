@@ -5,7 +5,7 @@ import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Role, User } from '@/lib/types';
+import { Role, type User } from '@/lib/types';
 import { users, workouts } from '@/lib/data';
 
 export default function DashboardPage() {
