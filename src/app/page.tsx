@@ -37,7 +37,7 @@ import {
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
-import { Dumbbell, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Role } from '@/lib/types';
 
 const signInSchema = z.object({
@@ -145,14 +145,11 @@ export default function AuthPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4">
        <div className="flex flex-col items-center text-center mb-8">
-        <div className="bg-primary rounded-full p-4 mb-4">
-            <Dumbbell className="h-10 w-10 text-primary-foreground" />
-        </div>
         <h1 className="text-5xl font-bold font-headline text-primary-foreground">
-          Olimpo App
+          Olimpo
         </h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          da Academia Olímpica
+          Um App da Academia Olímpica
         </p>
       </div>
 
@@ -295,10 +292,8 @@ export default function AuthPage() {
             Continuar como Convidado
         </Button>
       <footer className="absolute bottom-4 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Olimpo App. Todos os direitos reservados.
+        © {new Date().getFullYear()} Olimpo. Todos os direitos reservados.
       </footer>
     </div>
   );
 }
-
-    

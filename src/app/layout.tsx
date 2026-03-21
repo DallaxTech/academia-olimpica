@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'Olimpo App',
-  description: 'Forje Sua Força. Defina Seu Legado.',
+  title: 'Olimpo',
+  description: 'Um App da Academia Olímpica',
 };
 
 export default function RootLayout({
@@ -30,5 +30,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    
