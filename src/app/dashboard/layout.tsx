@@ -1,32 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { MainNav } from '@/components/main-nav';
-import type { User, Role } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUser } from '@/firebase';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isUserLoading } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
+    if (!isUserLoading && !user) {
       router.push('/');
     }
-    setIsLoading(false);
-  }, [router]);
+  }, [isUserLoading, user, router]);
 
-  if (isLoading || !user) {
+  if (isUserLoading || !user) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="flex items-center space-x-2">
@@ -40,7 +35,7 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <div className="flex h-screen">
-        <MainNav userRole={user.role as Role} />
+        <MainNav />
         <SidebarInset className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto">
           {children}
         </SidebarInset>

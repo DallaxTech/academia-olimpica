@@ -3,9 +3,10 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { BrainCircuit, Dumbbell, LayoutDashboard, Users } from 'lucide-react';
+import { doc } from 'firebase/firestore';
 
 import { cn } from '@/lib/utils';
-import { Role } from '@/lib/types';
+import { Role, UserProfile } from '@/lib/types';
 import {
   Sidebar,
   SidebarContent,
@@ -16,6 +17,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Logo } from './logo';
 import { UserNav } from './user-nav';
+import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 
 const navItems = [
   {
@@ -44,13 +46,22 @@ const navItems = [
   },
 ];
 
-type MainNavProps = {
-  userRole: Role;
-};
-
-export function MainNav({ userRole }: MainNavProps) {
+export function MainNav() {
   const pathname = usePathname();
-  const visibleItems = navItems.filter(item => item.roles.includes(userRole));
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'userProfiles', user.uid);
+  }, [user, firestore]);
+  
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
+  // Default to athlete role if not loaded or anonymous
+  const userRole = userProfile?.roleId || (user?.isAnonymous ? Role.Athlete : null);
+  
+  const visibleItems = navItems.filter(item => userRole && item.roles.includes(userRole));
 
   return (
     <Sidebar>

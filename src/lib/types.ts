@@ -1,22 +1,17 @@
 export enum Role {
-  Admin = 'admin',
-  Analyst = 'analyst',
-  Athlete = 'athlete',
+  Admin = 'Administrator',
+  Analyst = 'Analyst',
+  Athlete = 'Athlete',
 }
 
-export interface User {
+export interface UserProfile {
   id: string;
-  name: string;
   email: string;
-  role: Role;
-  avatar: string;
-  performanceMetrics?: {
-    strength: number;
-    cardio: number;
-    flexibility: number;
-  };
-  historicalData?: string;
-  goals?: string;
+  firstName: string;
+  lastName: string;
+  roleId: Role;
+  registrationDate: string;
+  lastLoginDate?: string;
 }
 
 export interface Exercise {
@@ -34,7 +29,7 @@ export interface WorkoutExercise {
 
 export interface WorkoutDay {
   day: number;
-  name: string;
+  name:string;
   exercises: WorkoutExercise[];
 }
 
