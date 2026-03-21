@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { BrainCircuit, Dumbbell, LayoutDashboard, Users } from 'lucide-react';
 import { doc } from 'firebase/firestore';
 
-import { cn } from '@/lib/utils';
 import { Role, UserProfile } from '@/lib/types';
 import {
   Sidebar,
@@ -49,7 +48,7 @@ const navItems = [
 
 export function MainNav() {
   const pathname = usePathname();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
   const userProfileRef = useMemoFirebase(() => {
@@ -59,10 +58,23 @@ export function MainNav() {
   
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
-  // Default to athlete role if not loaded or anonymous
-  const userRole = userProfile?.roleId || (user?.isAnonymous ? Role.Athlete : null);
+  const isLoading = isUserLoading || isProfileLoading;
+
+  const getVisibleItems = () => {
+    if (isLoading || !user) {
+      return [];
+    }
+    
+    const userRole = user.isAnonymous ? Role.Athlete : userProfile?.roleId;
+
+    if (!userRole) {
+      return [];
+    }
+
+    return navItems.filter(item => item.roles.includes(userRole));
+  };
   
-  const visibleItems = navItems.filter(item => userRole && item.roles.includes(userRole));
+  const visibleItems = getVisibleItems();
 
   return (
     <Sidebar>
@@ -70,7 +82,7 @@ export function MainNav() {
         <Logo />
       </SidebarHeader>
       <SidebarContent className="p-2">
-        {isProfileLoading ? (
+        {isLoading ? (
           <SidebarMenu>
             <SidebarMenuSkeleton showIcon />
             <SidebarMenuSkeleton showIcon />
