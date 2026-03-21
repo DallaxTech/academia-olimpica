@@ -16,7 +16,7 @@ export function MobileFooter() {
   const pathname = usePathname();
 
   return (
-    <footer className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur-sm md:hidden z-50">
+    <footer className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur-sm z-50">
       <div className="container flex h-16 items-center justify-around">
         {footerNavItems.map((item) => {
           const isActive = pathname === item.href;
