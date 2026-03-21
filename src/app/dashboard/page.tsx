@@ -11,17 +11,17 @@ export default function DashboardPage() {
     return null;
   }
 
-  const displayName = user.isAnonymous ? "Guest" : user.email?.split('@')[0] || 'User';
+  const displayName = user.isAnonymous ? "Convidado" : user.email?.split('@')[0] || 'Usuário';
 
   return (
     <>
       <PageHeader
-        title={`Welcome, ${displayName}!`}
-        description="Here's a snapshot of your current status."
+        title={`Bem-vindo(a), ${displayName}!`}
+        description="Aqui está um resumo do seu status atual."
       />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <p>Your dashboard is being built. Check back soon!</p>
+        <p>Seu painel está em construção. Volte em breve!</p>
       </div>
     </>
   );

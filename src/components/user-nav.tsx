@@ -32,8 +32,8 @@ export function UserNav() {
     return null;
   }
   
-  const displayName = user.isAnonymous ? 'Anonymous User' : user.displayName || user.email;
-  const displayEmail = user.isAnonymous ? 'guest@olimpo.fit' : user.email;
+  const displayName = user.isAnonymous ? 'Usuário Anônimo' : user.displayName || user.email;
+  const displayEmail = user.isAnonymous ? 'convidado@olimpo.fit' : user.email;
   
   const userAvatar = user.isAnonymous ? PlaceHolderImages.find(img => img.id === 'athlete') : PlaceHolderImages.find(img => img.id === 'admin');
 
@@ -66,7 +66,7 @@ export function UserNav() {
         <DropdownMenuGroup>
           <DropdownMenuItem onSelect={handleLogout} className="cursor-pointer">
             <LogOut className="mr-2 h-4 w-4" />
-            <span>Log out</span>
+            <span>Sair</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

@@ -14,22 +14,22 @@ const GenerateAthleteWorkoutSuggestionsInputSchema = z.object({
   athletePerformance: z
     .string()
     .describe(
-      "A detailed description of the athlete's current physical capabilities, strengths, and weaknesses (e.g., 'Can bench press 100kg for 5 reps, struggles with sustained cardio. Recent injury to left shoulder is fully recovered.')."
+      "Uma descrição detalhada das capacidades físicas atuais, pontos fortes e fracos do atleta (por exemplo, 'Consegue levantar 100kg no supino para 5 repetições, tem dificuldades com cardio sustentado. Lesão recente no ombro esquerdo está totalmente recuperada.')."
     ),
   athleteGoals: z
     .string()
     .describe(
-      "A clear statement of what the athlete aims to achieve (e.g., 'Increase upper body strength by 20% in 3 months, improve 5k run time by 1 minute.')."
+      "Uma declaração clara do que o atleta pretende alcançar (por exemplo, 'Aumentar a força da parte superior do corpo em 20% em 3 meses, melhorar o tempo de corrida de 5k em 1 minuto.')."
     ),
   historicalData: z
     .string()
     .describe(
-      "A summary of the athlete's past training, progress, and any relevant health or injury history (e.g., 'Last 4 weeks included strength training 3x/week, cardio 2x/week. Historically responds well to progressive overload.')."
+      "Um resumo do treinamento passado, progresso e qualquer histórico de saúde ou lesão relevante do atleta (por exemplo, 'Últimas 4 semanas incluíram treino de força 3x/semana, cardio 2x/semana. Historicamente responde bem à sobrecarga progressiva.')."
     ),
   requestDescription: z
     .string()
     .describe(
-      "The specific request for workout suggestions (e.g., 'Suggest 3 variations for the pull-up exercise to target different back muscles.', 'Create a new 20-minute high-intensity interval training (HIIT) segment focusing on leg power.', 'Modify current squat routine to account for knee sensitivity.')."
+      "A solicitação específica de sugestões de treino (por exemplo, 'Sugira 3 variações para o exercício de barra fixa para atingir diferentes músculos das costas.', 'Crie um novo segmento de treinamento intervalado de alta intensidade (HIIT) de 20 minutos com foco na potência das pernas.', 'Modifique a rotina atual de agachamento para levar em conta a sensibilidade no joelho.')."
     ),
 });
 export type GenerateAthleteWorkoutSuggestionsInput = z.infer<
@@ -40,12 +40,12 @@ const GenerateAthleteWorkoutSuggestionsOutputSchema = z.object({
   suggestions: z
     .array(z.string())
     .describe(
-      'An array of detailed exercise variations, modifications, or complete training segments.'
+      'Uma lista de variações de exercícios detalhadas, modificações ou segmentos de treinamento completos.'
     ),
   reasoning: z
     .string()
     .describe(
-      'A clear and concise explanation of why these suggestions were made, linking them back to the athlete\'s performance, goals, and the specific request.'
+      'Uma explicação clara e concisa de por que essas sugestões foram feitas, vinculando-as ao desempenho, metas e solicitação específica do atleta.'
     ),
 });
 export type GenerateAthleteWorkoutSuggestionsOutput = z.infer<
@@ -62,19 +62,19 @@ const prompt = ai.definePrompt({
   name: 'generateAthleteWorkoutSuggestionsPrompt',
   input: {schema: GenerateAthleteWorkoutSuggestionsInputSchema},
   output: {schema: GenerateAthleteWorkoutSuggestionsOutputSchema},
-  prompt: `You are an expert fitness coach and exercise physiologist specializing in creating personalized training plans for athletes. Your goal is to provide highly effective and safe workout suggestions.
+  prompt: `Você é um coach de fitness especialista e fisiologista do exercício especializado em criar planos de treinamento personalizados para atletas. Seu objetivo é fornecer sugestões de treino altamente eficazes e seguras.
 
-Based on the following athlete information and specific request, generate detailed exercise variations, modifications, or entirely new training segments.
+Com base nas seguintes informações do atleta e na solicitação específica, gere variações detalhadas de exercícios, modificações ou segmentos de treinamento inteiramente novos.
 
-Athlete's Current Performance: {{{athletePerformance}}}
-Athlete's Goals: {{{athleteGoals}}}
-Athlete's Historical Data: {{{historicalData}}}
+Desempenho Atual do Atleta: {{{athletePerformance}}}
+Metas do Atleta: {{{athleteGoals}}}
+Dados Históricos do Atleta: {{{historicalData}}}
 
-Specific Request from Analyst/Administrator: {{{requestDescription}}}
+Solicitação Específica do Analista/Administrador: {{{requestDescription}}}
 
-Please provide suggestions that are tailored to the athlete's current abilities, align with their goals, and take into account their training history. The suggestions should be practical and actionable. Also, provide a clear reasoning for your recommendations.
+Forneça sugestões adaptadas às habilidades atuais do atleta, alinhadas com seus objetivos e que levem em consideração seu histórico de treinamento. As sugestões devem ser práticas e acionáveis. Além disso, forneça um raciocínio claro para suas recomendações.
 
-Output format should be a JSON object containing an array of 'suggestions' (each suggestion should be a detailed string) and a 'reasoning' string explaining why these suggestions were chosen.`,
+O formato de saída deve ser um objeto JSON contendo um array de 'sugestões' (cada sugestão deve ser uma string detalhada) e uma string de 'raciocínio' explicando por que essas sugestões foram escolhidas.`,
 });
 
 const generateAthleteWorkoutSuggestionsFlow = ai.defineFlow(

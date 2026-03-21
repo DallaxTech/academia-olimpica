@@ -7,13 +7,13 @@ export default function UsersPage() {
   return (
     <>
       <PageHeader
-        title="User Management"
-        description="View and manage all users in the system."
+        title="Gerenciamento de Usuários"
+        description="Visualize e gerencie todos os usuários no sistema."
       >
-        <Button>Add User</Button>
+        <Button>Adicionar Usuário</Button>
       </PageHeader>
       <div>
-        <p>User management is under construction. Please check back later.</p>
+        <p>O gerenciamento de usuários está em construção. Por favor, volte mais tarde.</p>
       </div>
     </>
   );

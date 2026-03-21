@@ -22,25 +22,25 @@ import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 const navItems = [
   {
     href: '/dashboard',
-    label: 'Dashboard',
+    label: 'Painel',
     icon: LayoutDashboard,
     roles: [Role.Admin, Role.Analyst, Role.Athlete],
   },
   {
     href: '/dashboard/workouts',
-    label: 'Workouts',
+    label: 'Treinos',
     icon: Dumbbell,
     roles: [Role.Admin, Role.Analyst, Role.Athlete],
   },
   {
     href: '/dashboard/users',
-    label: 'Users',
+    label: 'Usuários',
     icon: Users,
     roles: [Role.Admin, Role.Analyst],
   },
   {
     href: '/dashboard/ai-recommender',
-    label: 'AI Recommender',
+    label: 'Recomendador IA',
     icon: BrainCircuit,
     roles: [Role.Admin, Role.Analyst],
   },

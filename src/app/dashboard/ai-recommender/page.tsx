@@ -6,11 +6,11 @@ export default function AiRecommenderPage() {
   return (
     <>
       <PageHeader
-        title="AI Training Recommender"
-        description="Generate personalized workout suggestions for athletes."
+        title="Recomendador de Treino com IA"
+        description="Gere sugestões de treino personalizadas para atletas."
       />
       <div className="grid md:grid-cols-2 gap-8">
-        <p>AI Recommender is under construction. Please check back later.</p>
+        <p>O Recomendador com IA está em construção. Por favor, volte mais tarde.</p>
       </div>
     </>
   );

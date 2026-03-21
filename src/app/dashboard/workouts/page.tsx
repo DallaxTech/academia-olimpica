@@ -13,11 +13,11 @@ export default function WorkoutsPage() {
   return (
      <>
       <PageHeader
-        title="Workouts"
-        description="Manage and view workout plans."
+        title="Treinos"
+        description="Gerencie e visualize os planos de treino."
       />
       <div>
-        <p>The workout section is currently under construction. Please check back later.</p>
+        <p>A seção de treinos está em construção. Por favor, volte mais tarde.</p>
       </div>
     </>
   );

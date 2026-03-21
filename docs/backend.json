@@ -4,37 +4,37 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
-      "description": "Represents a user within the OlimpoFit application, encompassing athletes, analysts, and administrators. This entity stores core user information and links to their assigned role.",
+      "description": "Representa um usuário no aplicativo OlimpoFit, abrangendo atletas, analistas e administradores. Esta entidade armazena informações essenciais do usuário e links para a função atribuída.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the UserProfile entity."
+          "description": "Identificador único para a entidade UserProfile."
         },
         "email": {
           "type": "string",
-          "description": "The user's email address, used for identification and communication.",
+          "description": "O endereço de e-mail do usuário, usado para identificação e comunicação.",
           "format": "email"
         },
         "firstName": {
           "type": "string",
-          "description": "The first name of the user."
+          "description": "O primeiro nome do usuário."
         },
         "lastName": {
           "type": "string",
-          "description": "The last name of the user."
+          "description": "O sobrenome do usuário."
         },
         "roleId": {
           "type": "string",
-          "description": "Reference to the Role entity, defining the user's access level and permissions. (Relationship: Role 1:N UserProfile)"
+          "description": "Referência à entidade Role, definindo o nível de acesso e as permissões do usuário. (Relacionamento: Role 1:N UserProfile)"
         },
         "registrationDate": {
           "type": "string",
-          "description": "The date and time when the user's profile was created.",
+          "description": "A data e hora em que o perfil do usuário foi criado.",
           "format": "date-time"
         },
         "lastLoginDate": {
           "type": "string",
-          "description": "The date and time of the user's last successful login.",
+          "description": "A data e hora do último login bem-sucedido do usuário.",
           "format": "date-time"
         }
       },
@@ -51,19 +51,19 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Role",
       "type": "object",
-      "description": "Defines the access levels and granular permissions within the OlimpoFit application (e.g., Athlete, Analyst, Administrator).",
+      "description": "Define os níveis de acesso e as permissões granulares no aplicativo OlimpoFit (por exemplo, Atleta, Analista, Administrador).",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Role entity."
+          "description": "Identificador único para a entidade Role."
         },
         "name": {
           "type": "string",
-          "description": "The unique name of the role (e.g., 'Athlete', 'Analyst', 'Administrator')."
+          "description": "O nome exclusivo da função (por exemplo, 'Atleta', 'Analista', 'Administrador')."
         },
         "description": {
           "type": "string",
-          "description": "A detailed description of the permissions and responsibilities associated with this role."
+          "description": "Uma descrição detalhada das permissões e responsabilidades associadas a esta função."
         }
       },
       "required": [
@@ -76,53 +76,53 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "TrainingPlan",
       "type": "object",
-      "description": "Represents a comprehensive training program designed for an athlete or a group of athletes, consisting of multiple workout days.",
+      "description": "Representa um programa de treinamento abrangente projetado para um atleta ou um grupo de atletas, consistindo em vários dias de treino.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the TrainingPlan entity."
+          "description": "Identificador único para a entidade TrainingPlan."
         },
         "name": {
           "type": "string",
-          "description": "The name of the training plan."
+          "description": "O nome do plano de treinamento."
         },
         "description": {
           "type": "string",
-          "description": "A detailed description of the training plan's goals and overall structure."
+          "description": "Uma descrição detalhada dos objetivos e da estrutura geral do plano de treinamento."
         },
         "startDate": {
           "type": "string",
-          "description": "The calendar date when the training plan is scheduled to begin.",
+          "description": "A data do calendário em que o plano de treinamento está programado para começar.",
           "format": "date"
         },
         "endDate": {
           "type": "string",
-          "description": "The calendar date when the training plan is scheduled to end.",
+          "description": "A data do calendário em que o plano de treinamento está programado para terminar.",
           "format": "date"
         },
         "assignedToAthleteIds": {
           "type": "array",
-          "description": "References to UserProfile entities (athletes) who are assigned this training plan. (Relationship: UserProfile N:N TrainingPlan)",
+          "description": "Referências a entidades UserProfile (atletas) a quem este plano de treinamento está atribuído. (Relacionamento: UserProfile N:N TrainingPlan)",
           "items": {
             "type": "string"
           }
         },
         "createdByUserId": {
           "type": "string",
-          "description": "Reference to the UserProfile (Analyst or Administrator) who initially created this training plan. (Relationship: UserProfile 1:N TrainingPlan)"
+          "description": "Referência ao UserProfile (Analista ou Administrador) que criou inicialmente este plano de treinamento. (Relacionamento: UserProfile 1:N TrainingPlan)"
         },
         "creationDate": {
           "type": "string",
-          "description": "The date and time when this training plan was created.",
+          "description": "A data e hora em que este plano de treinamento foi criado.",
           "format": "date-time"
         },
         "lastModifiedByUserId": {
           "type": "string",
-          "description": "Reference to the UserProfile (Analyst or Administrator) who last modified this training plan. (Relationship: UserProfile 1:N TrainingPlan)"
+          "description": "Referência ao UserProfile (Analista ou Administrador) que modificou pela última vez este plano de treinamento. (Relacionamento: UserProfile 1:N TrainingPlan)"
         },
         "lastModifiedDate": {
           "type": "string",
-          "description": "The date and time when this training plan was last modified.",
+          "description": "A data e hora em que este plano de treinamento foi modificado pela última vez.",
           "format": "date-time"
         }
       },
@@ -140,27 +140,27 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "WorkoutDay",
       "type": "object",
-      "description": "Represents a specific day's workout within a larger training plan, detailing the exercises to be performed on that day.",
+      "description": "Representa o treino de um dia específico dentro de um plano de treinamento maior, detalhando os exercícios a serem realizados nesse dia.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the WorkoutDay entity."
+          "description": "Identificador único para a entidade WorkoutDay."
         },
         "trainingPlanId": {
           "type": "string",
-          "description": "Reference to the TrainingPlan this workout day belongs to. (Relationship: TrainingPlan 1:N WorkoutDay)"
+          "description": "Referência ao TrainingPlan ao qual este dia de treino pertence. (Relacionamento: TrainingPlan 1:N WorkoutDay)"
         },
         "dayNumber": {
           "type": "number",
-          "description": "The sequential number of the day within the training plan (e.g., Day 1, Day 2)."
+          "description": "O número sequencial do dia dentro do plano de treinamento (por exemplo, Dia 1, Dia 2)."
         },
         "theme": {
           "type": "string",
-          "description": "A descriptive theme or focus for the workout day (e.g., 'Leg Day', 'Upper Body Strength', 'Cardio Endurance')."
+          "description": "Um tema ou foco descritivo para o dia de treino (por exemplo, 'Dia de Perna', 'Força Superior', 'Resistência Cardiovascular')."
         },
         "exerciseIds": {
           "type": "array",
-          "description": "References to Exercise entities included in this specific workout day. (Relationship: Exercise N:N WorkoutDay)",
+          "description": "Referências a entidades Exercise incluídas neste dia de treino específico. (Relacionamento: Exercise N:N WorkoutDay)",
           "items": {
             "type": "string"
           }
@@ -178,42 +178,42 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Exercise",
       "type": "object",
-      "description": "Represents a single physical exercise with its detailed description, which can be part of multiple workout days or training plans.",
+      "description": "Representa um único exercício físico com sua descrição detalhada, que pode fazer parte de vários dias de treino ou planos de treinamento.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Exercise entity."
+          "description": "Identificador único para a entidade Exercise."
         },
         "name": {
           "type": "string",
-          "description": "The common name of the exercise (e.g., 'Barbell Squat', 'Push-up', 'Treadmill Run')."
+          "description": "O nome comum do exercício (por exemplo, 'Agachamento com Barra', 'Flexão', 'Corrida na Esteira')."
         },
         "description": {
           "type": "string",
-          "description": "A detailed description of how to properly perform the exercise, including form tips and common mistakes."
+          "description": "Uma descrição detalhada de como realizar o exercício corretamente, incluindo dicas de forma e erros comuns."
         },
         "targetMuscles": {
           "type": "array",
-          "description": "A list of primary muscle groups targeted by this exercise (e.g., 'Quadriceps', 'Glutes', 'Triceps').",
+          "description": "Uma lista dos principais grupos musculares visados por este exercício (por exemplo, 'Quadríceps', 'Glúteos', 'Tríceps').",
           "items": {
             "type": "string"
           }
         },
         "equipmentNeeded": {
           "type": "array",
-          "description": "A list of equipment required to perform the exercise (e.g., 'Barbell', 'Dumbbells', 'Resistance Bands', 'None').",
+          "description": "Uma lista de equipamentos necessários para realizar o exercício (por exemplo, 'Barra', 'Halteres', 'Faixas de Resistência', 'Nenhum').",
           "items": {
             "type": "string"
           }
         },
         "videoUrl": {
           "type": "string",
-          "description": "An optional URL to a video demonstrating the exercise technique.",
+          "description": "Um URL opcional para um vídeo demonstrando a técnica do exercício.",
           "format": "uri"
         },
         "aiRecommendations": {
           "type": "string",
-          "description": "AI-generated personalized exercise variations, modifications, or tips related to this exercise, based on athlete data."
+          "description": "Variações, modificações ou dicas de exercícios personalizadas geradas por IA relacionadas a este exercício, com base nos dados do atleta."
         }
       },
       "required": [
@@ -227,36 +227,36 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AthleteWorkoutSession",
       "type": "object",
-      "description": "Records an athlete's completion and performance for a specific workout day within a training plan, tracking their progress.",
+      "description": "Registra a conclusão e o desempenho de um atleta para um dia de treino específico dentro de um plano de treinamento, acompanhando seu progresso.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the AthleteWorkoutSession entity."
+          "description": "Identificador único para a entidade AthleteWorkoutSession."
         },
         "athleteId": {
           "type": "string",
-          "description": "Reference to the UserProfile (athlete) who performed this workout session. (Relationship: UserProfile 1:N AthleteWorkoutSession)"
+          "description": "Referência ao UserProfile (atleta) que realizou esta sessão de treino. (Relacionamento: UserProfile 1:N AthleteWorkoutSession)"
         },
         "workoutDayId": {
           "type": "string",
-          "description": "Reference to the WorkoutDay that was performed in this session. (Relationship: WorkoutDay 1:N AthleteWorkoutSession)"
+          "description": "Referência ao WorkoutDay que foi realizado nesta sessão. (Relacionamento: WorkoutDay 1:N AthleteWorkoutSession)"
         },
         "sessionDate": {
           "type": "string",
-          "description": "The date and time when the workout session was performed.",
+          "description": "A data e hora em que a sessão de treino foi realizada.",
           "format": "date-time"
         },
         "status": {
           "type": "string",
-          "description": "The completion status of the session (e.g., 'Completed', 'Partially Completed', 'Skipped', 'Planned')."
+          "description": "O status de conclusão da sessão (por exemplo, 'Concluído', 'Parcialmente Concluído', 'Ignorado', 'Planejado')."
         },
         "notes": {
           "type": "string",
-          "description": "Optional notes or feedback from the athlete regarding the session (e.g., 'Felt strong today', 'Legs were tired')."
+          "description": "Notas ou feedback opcionais do atleta sobre a sessão (por exemplo, 'Senti-me forte hoje', 'As pernas estavam cansadas')."
         },
         "overallRating": {
           "type": "number",
-          "description": "An optional rating (e.g., 1-5) given by the athlete for the session's perceived effort or quality."
+          "description": "Uma classificação opcional (por exemplo, 1-5) dada pelo atleta para o esforço ou qualidade percebida da sessão."
         }
       },
       "required": [
@@ -271,47 +271,47 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ExerciseSetPerformance",
       "type": "object",
-      "description": "Records the detailed performance of an athlete for a specific set of an exercise during a workout session.",
+      "description": "Registra o desempenho detalhado de um atleta para uma série específica de um exercício durante uma sessão de treino.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the ExerciseSetPerformance entity."
+          "description": "Identificador único para a entidade ExerciseSetPerformance."
         },
         "athleteWorkoutSessionId": {
           "type": "string",
-          "description": "Reference to the AthleteWorkoutSession this performance record belongs to. (Relationship: AthleteWorkoutSession 1:N ExerciseSetPerformance)"
+          "description": "Referência à AthleteWorkoutSession à qual este registro de desempenho pertence. (Relacionamento: AthleteWorkoutSession 1:N ExerciseSetPerformance)"
         },
         "exerciseId": {
           "type": "string",
-          "description": "Reference to the Exercise that was performed in this set. (Relationship: Exercise 1:N ExerciseSetPerformance)"
+          "description": "Referência ao Exercise que foi realizado nesta série. (Relacionamento: Exercise 1:N ExerciseSetPerformance)"
         },
         "setNumber": {
           "type": "number",
-          "description": "The sequential number of the set within the exercise (e.g., 1, 2, 3)."
+          "description": "O número sequencial da série dentro do exercício (por exemplo, 1, 2, 3)."
         },
         "repetitions": {
           "type": "number",
-          "description": "The number of repetitions performed in this set."
+          "description": "O número de repetições realizadas nesta série."
         },
         "weightKg": {
           "type": "number",
-          "description": "The weight lifted in kilograms for this set (optional, for weight-based exercises)."
+          "description": "O peso levantado em quilogramas para esta série (opcional, para exercícios com peso)."
         },
         "durationSeconds": {
           "type": "number",
-          "description": "The duration in seconds for this set (optional, for timed exercises like planks or holds)."
+          "description": "A duração em segundos para esta série (opcional, para exercícios cronometrados como pranchas ou isometrias)."
         },
         "distanceMeters": {
           "type": "number",
-          "description": "The distance covered in meters for this set (optional, for distance-based exercises like running intervals)."
+          "description": "A distância percorrida em metros para esta série (opcional, para exercícios baseados em distância como intervalos de corrida)."
         },
         "completed": {
           "type": "boolean",
-          "description": "Indicates whether this specific set was completed as planned or attempted."
+          "description": "Indica se esta série específica foi concluída conforme o planejado ou tentada."
         },
         "notes": {
           "type": "string",
-          "description": "Optional notes specific to the performance of this set (e.g., 'Struggled on last rep', 'Good form throughout')."
+          "description": "Notas opcionais específicas sobre o desempenho desta série (por exemplo, 'Dificuldade na última repetição', 'Boa forma durante todo o exercício')."
         }
       },
       "required": [
@@ -326,36 +326,36 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PerformanceMetric",
       "type": "object",
-      "description": "Stores historical performance data and specific metrics for athletes, allowing for progress monitoring over time.",
+      "description": "Armazena dados históricos de desempenho e métricas específicas para atletas, permitindo o monitoramento do progresso ao longo do tempo.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the PerformanceMetric entity."
+          "description": "Identificador único para a entidade PerformanceMetric."
         },
         "athleteId": {
           "type": "string",
-          "description": "Reference to the UserProfile (athlete) whose metric is being recorded. (Relationship: UserProfile 1:N PerformanceMetric)"
+          "description": "Referência ao UserProfile (atleta) cuja métrica está sendo registrada. (Relacionamento: UserProfile 1:N PerformanceMetric)"
         },
         "metricName": {
           "type": "string",
-          "description": "The name of the performance metric (e.g., 'Max Bench Press', '5k Run Time', 'Vertical Jump Height', 'Body Weight')."
+          "description": "O nome da métrica de desempenho (por exemplo, 'Supino Máximo', 'Tempo de Corrida 5k', 'Altura do Salto Vertical', 'Peso Corporal')."
         },
         "value": {
           "type": "number",
-          "description": "The measured value of the performance metric."
+          "description": "O valor medido da métrica de desempenho."
         },
         "unit": {
           "type": "string",
-          "description": "The unit of measurement for the value (e.g., 'kg', 'minutes', 'cm', 'seconds')."
+          "description": "A unidade de medida para o valor (por exemplo, 'kg', 'minutos', 'cm', 'segundos')."
         },
         "measurementDate": {
           "type": "string",
-          "description": "The date and time when the measurement was taken.",
+          "description": "A data e hora em que a medição foi feita.",
           "format": "date-time"
         },
         "recordedByUserId": {
           "type": "string",
-          "description": "Reference to the UserProfile (Analyst or Administrator) who recorded this metric. (Relationship: UserProfile 1:N PerformanceMetric)"
+          "description": "Referência ao UserProfile (Analista ou Administrador) que registrou esta métrica. (Relacionamento: UserProfile 1:N PerformanceMetric)"
         }
       },
       "required": [
@@ -383,7 +383,7 @@
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "Stores individual user profile information. The 'userId' wildcard directly corresponds to Firebase Authentication UIDs. Access is primarily controlled by the user's UID matching the path, and by their assigned 'roleId' (stored within this document). Includes 'roleId' for DBAC authorization."
+          "description": "Armazena informações de perfil de usuário individual. O curinga 'userId' corresponde diretamente aos UIDs de Autenticação do Firebase. O acesso é controlado principalmente pelo UID do usuário que corresponde ao caminho e por seu 'roleId' atribuído (armazenado neste documento). Inclui 'roleId' para autorização DBAC."
         }
       },
       {
@@ -393,7 +393,7 @@
           "schema": {
             "$ref": "#/backend/entities/Role"
           },
-          "description": "Defines global roles and their descriptions. This collection is for static role definitions, not user assignments. Readable by all authenticated users to understand roles, writable by administrators."
+          "description": "Define funções globais e suas descrições. Esta coleção é para definições de funções estáticas, não para atribuições de usuários. Legível por todos os usuários autenticados para entender as funções, gravável por administradores."
         }
       },
       {
@@ -403,7 +403,7 @@
           "schema": {
             "$ref": "#/backend/entities/Exercise"
           },
-          "description": "Stores global exercise definitions. Readable by all authenticated users (athletes, analysts, administrators). Writable by analysts and administrators."
+          "description": "Armazena definições de exercícios globais. Legível por todos os usuários autenticados (atletas, analistas, administradores). Gravável por analistas e administradores."
         }
       },
       {
@@ -413,11 +413,11 @@
           "schema": {
             "$ref": "#/backend/entities/TrainingPlan"
           },
-          "description": "Stores comprehensive training programs. Includes denormalized 'createdByUserId' (for ownership by analyst/admin) and 'assignedToAthleteIds' (for athlete access) for authorization independence.",
+          "description": "Armazena programas de treinamento abrangentes. Inclui 'createdByUserId' (para propriedade por analista/admin) e 'assignedToAthleteIds' (para acesso do atleta) desnormalizados para independência de autorização.",
           "params": [
             {
               "name": "trainingPlanId",
-              "description": "The unique identifier for a specific training plan."
+              "description": "O identificador único para um plano de treinamento específico."
             }
           ]
         }
@@ -429,15 +429,15 @@
           "schema": {
             "$ref": "#/backend/entities/WorkoutDay"
           },
-          "description": "Stores specific workout days belonging to a training plan. Includes denormalized 'trainingPlanOwnerId' and 'trainingPlanAssignedToAthleteIds' (copied from the parent TrainingPlan) for authorization independence.",
+          "description": "Armazena dias de treino específicos pertencentes a um plano de treinamento. Inclui 'trainingPlanOwnerId' e 'trainingPlanAssignedToAthleteIds' desnormalizados (copiados do TrainingPlan pai) para independência de autorização.",
           "params": [
             {
               "name": "trainingPlanId",
-              "description": "The unique identifier of the parent training plan."
+              "description": "O identificador único do plano de treinamento pai."
             },
             {
               "name": "workoutDayId",
-              "description": "The unique identifier for a specific workout day within the training plan."
+              "description": "O identificador único para um dia de treino específico dentro do plano de treinamento."
             }
           ]
         }
@@ -449,15 +449,15 @@
           "schema": {
             "$ref": "#/backend/entities/AthleteWorkoutSession"
           },
-          "description": "Records an athlete's completed workout sessions. The 'athleteId' in the path matches the 'athleteId' field in the document, establishing path-based ownership. Accessible by the athlete, analysts, and administrators.",
+          "description": "Registra as sessões de treino concluídas de um atleta. O 'athleteId' no caminho corresponde ao campo 'athleteId' no documento, estabelecendo a propriedade baseada no caminho. Acessível pelo atleta, analistas e administradores.",
           "params": [
             {
               "name": "athleteId",
-              "description": "The unique identifier of the athlete who performed this workout session."
+              "description": "O identificador único do atleta que realizou esta sessão de treino."
             },
             {
               "name": "sessionId",
-              "description": "The unique identifier for a specific athlete workout session."
+              "description": "O identificador único para uma sessão de treino de atleta específica."
             }
           ]
         }
@@ -469,19 +469,19 @@
           "schema": {
             "$ref": "#/backend/entities/ExerciseSetPerformance"
           },
-          "description": "Records detailed performance for each exercise set within an athlete's workout session. Includes denormalized 'athleteId' (copied from the parent AthleteWorkoutSession) for authorization independence.",
+          "description": "Registra o desempenho detalhado para cada série de exercício dentro da sessão de treino de um atleta. Inclui 'athleteId' desnormalizado (copiado do AthleteWorkoutSession pai) para independência de autorização.",
           "params": [
             {
               "name": "athleteId",
-              "description": "The unique identifier of the athlete for this performance record."
+              "description": "O identificador único do atleta para este registro de desempenho."
             },
             {
               "name": "sessionId",
-              "description": "The unique identifier of the parent athlete workout session."
+              "description": "O identificador único da sessão de treino do atleta pai."
             },
             {
               "name": "performanceId",
-              "description": "The unique identifier for a specific exercise set performance record."
+              "description": "O identificador único para um registro de desempenho de série de exercício específico."
             }
           ]
         }
@@ -493,20 +493,20 @@
           "schema": {
             "$ref": "#/backend/entities/PerformanceMetric"
           },
-          "description": "Stores historical performance data and metrics for athletes. The 'athleteId' in the path matches the 'athleteId' field in the document, establishing path-based ownership. Also includes 'recordedByUserId' for analyst/admin attribution. Accessible by the athlete, analysts, and administrators.",
+          "description": "Armazena dados históricos de desempenho e métricas para atletas. O 'athleteId' no caminho corresponde ao campo 'athleteId' no documento, estabelecendo a propriedade baseada no caminho. Também inclui 'recordedByUserId' para atribuição de analista/admin. Acessível pelo atleta, analistas e administradores.",
           "params": [
             {
               "name": "athleteId",
-              "description": "The unique identifier of the athlete whose metric is being recorded."
+              "description": "O identificador único do atleta cuja métrica está sendo registrada."
             },
             {
               "name": "metricId",
-              "description": "The unique identifier for a specific performance metric record."
+              "description": "O identificador único para um registro de métrica de desempenho específico."
             }
           ]
         }
       }
     ],
-    "reasoning": "The proposed Firestore structure for OlimpoFit is designed to meet stringent security, scalability, and debuggability requirements, prioritizing Authorization Independence and Queryable Authorization Patterns (QAPs). \n\n**Authorization Independence:** This is achieved primarily through strategic denormalization. For any subcollection whose access would typically depend on its parent document's attributes, the necessary authorization context (e.g., owner ID, member IDs, assigned athlete IDs) is explicitly copied down to each document within that subcollection. For example:\n*   Documents in `/trainingPlans/{trainingPlanId}/workoutDays/{workoutDayId}` will denormalize `trainingPlanOwnerId` (from `TrainingPlan.createdByUserId`) and `trainingPlanAssignedToAthleteIds` (from `TrainingPlan.assignedToAthleteIds`). This eliminates the need for expensive and non-atomic `get()` calls to the parent `TrainingPlan` document within security rules when authorizing access to `WorkoutDay` documents.\n*   Similarly, `ExerciseSetPerformance` documents in `/userProfiles/{athleteId}/workoutSessions/{sessionId}/exerciseSetPerformances/{performanceId}` will denormalize the `athleteId` from their parent `AthleteWorkoutSession`. This allows rules to evaluate ownership and access directly from the `ExerciseSetPerformance` document, supporting atomic operations and simpler rule logic.\n\nThis denormalization ensures that security rules can always evaluate authorization based solely on the `request.auth.uid` and the `resource.data` of the document being accessed, promoting atomic operations and simplifying rule debugging.\n\n**Queryable Authorization Patterns (QAPs):** The structure facilitates QAPs by ensuring that all documents within a given collection or subcollection share a homogeneous security posture. This is a direct application of the 'Structural Segregation' mandate. For instance:\n*   `userProfiles/{userId}` ensures that an authenticated user can perform `list` queries on their own data (e.g., `workoutSessions`, `performanceMetrics`) by simply filtering on `request.auth.uid` matching the path wildcard. This allows clients to query directly without needing server-side filtering after retrieving data, which Firestore rules explicitly prevent.\n*   `trainingPlans/{trainingPlanId}` documents contain `createdByUserId` and `assignedToAthleteIds`. This allows athletes to `list` only the plans they are assigned to (e.g., `where('assignedToAthleteIds', 'array-contains', request.auth.uid)`), and analysts/administrators to `list` all plans (with a rule checking their role) because the authorization fields are present on each document.\n*   Global collections like `/exercises` and `/roles` are designed for broad read access by relevant user types (all authenticated for exercises, specific roles for write), supporting efficient `list` operations for these static data sets.\n\nBy following path-based ownership for user-specific data and denormalizing authorization context for collaborative and hierarchical data, the system ensures that security rules are straightforward, performant, and support robust client-side queries without security loopholes, directly addressing the core design principles."
+    "reasoning": "A estrutura do Firestore proposta para o OlimpoFit foi projetada para atender a requisitos rigorosos de segurança, escalabilidade e depuração, priorizando a Independência de Autorização e Padrões de Autorização Consultáveis (QAPs).\n\n**Independência de Autorização:** Isso é alcançado principalmente por meio de desnormalização estratégica. Para qualquer subcoleção cujo acesso dependeria normalmente dos atributos de seu documento pai, o contexto de autorização necessário (por exemplo, ID do proprietário, IDs de membros, IDs de atletas atribuídos) é explicitamente copiado para cada documento dentro dessa subcoleção. Por exemplo:\n*   Documentos em `/trainingPlans/{trainingPlanId}/workoutDays/{workoutDayId}` desnormalizarão `trainingPlanOwnerId` (de `TrainingPlan.createdByUserId`) e `trainingPlanAssignedToAthleteIds` (de `TrainingPlan.assignedToAthleteIds`). Isso elimina a necessidade de chamadas `get()` caras e não atômicas para o documento `TrainingPlan` pai nas regras de segurança ao autorizar o acesso a documentos `WorkoutDay`.\n*   Da mesma forma, os documentos `ExerciseSetPerformance` em `/userProfiles/{athleteId}/workoutSessions/{sessionId}/exerciseSetPerformances/{performanceId}` desnormalizarão o `athleteId` de seu `AthleteWorkoutSession` pai. Isso permite que as regras avaliem a propriedade e o acesso diretamente do documento `ExerciseSetPerformance`, suportando operações atômicas e uma lógica de regras mais simples.\n\nEssa desnormalização garante que as regras de segurança sempre possam avaliar a autorização com base apenas no `request.auth.uid` e no `resource.data` do documento que está sendo acessado, promovendo operações atômicas e simplificando a depuração de regras.\n\n**Padrões de Autorização Consultáveis (QAPs):** A estrutura facilita os QAPs, garantindo que todos os documentos em uma determinada coleção ou subcoleção compartilhem uma postura de segurança homogênea. Esta é uma aplicação direta do mandato de 'Segregação Estrutural'. Por exemplo:\n*   `userProfiles/{userId}` garante que um usuário autenticado possa executar consultas de `list` em seus próprios dados (por exemplo, `workoutSessions`, `performanceMetrics`) simplesmente filtrando em `request.auth.uid` correspondente ao curinga do caminho. Isso permite que os clientes consultem diretamente sem a necessidade de filtragem do lado do servidor após a recuperação dos dados, o que as regras do Firestore proíbem explicitamente.\n*   Os documentos `trainingPlans/{trainingPlanId}` contêm `createdByUserId` e `assignedToAthleteIds`. Isso permite que os atletas façam `list` apenas dos planos aos quais estão atribuídos (por exemplo, `where('assignedToAthleteIds', 'array-contains', request.auth.uid)`), e analistas/administradores façam `list` de todos os planos (com uma regra verificando sua função) porque os campos de autorização estão presentes em cada documento.\n*   Coleções globais como `/exercises` e `/roles` são projetadas para amplo acesso de leitura por tipos de usuários relevantes (todos autenticados para exercícios, funções específicas para gravação), suportando operações de `list` eficientes para esses conjuntos de dados estáticos.\n\nAo seguir a propriedade baseada em caminho para dados específicos do usuário и desnormalizar o contexto de autorização para dados colaborativos e hierárquicos, o sistema garante que as regras de segurança sejam diretas, eficientes e suportem consultas robustas do lado do cliente sem brechas de segurança, abordando diretamente os princípios centrais de design."
   }
 }

@@ -41,15 +41,15 @@ import { Dumbbell, Loader2 } from 'lucide-react';
 import { Role } from '@/lib/types';
 
 const signInSchema = z.object({
-  email: z.string().email({ message: 'Invalid email address.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  email: z.string().email({ message: 'Endereço de e-mail inválido.' }),
+  password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
 });
 
 const signUpSchema = z.object({
-  firstName: z.string().min(1, { message: 'First name is required.' }),
-  lastName: z.string().min(1, { message: 'Last name is required.' }),
-  email: z.string().email({ message: 'Invalid email address.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  firstName: z.string().min(1, { message: 'O nome é obrigatório.' }),
+  lastName: z.string().min(1, { message: 'O sobrenome é obrigatório.' }),
+  email: z.string().email({ message: 'Endereço de e-mail inválido.' }),
+  password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres.' }),
 });
 
 export default function AuthPage() {
@@ -77,7 +77,7 @@ export default function AuthPage() {
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Sign In Failed',
+        title: 'Falha ao Entrar',
         description: error.message,
       });
     } finally {
@@ -108,7 +108,7 @@ export default function AuthPage() {
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Sign Up Failed',
+        title: 'Falha ao Cadastrar',
         description: error.message,
       });
     } finally {
@@ -124,7 +124,7 @@ export default function AuthPage() {
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Anonymous Sign In Failed',
+        title: 'Falha no Login Anônimo',
         description: error.message,
       });
     } finally {
@@ -143,21 +143,21 @@ export default function AuthPage() {
           OlimpoFit
         </h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Forge Your Strength. Define Your Legacy.
+          Forje Sua Força. Defina Seu Legado.
         </p>
       </div>
 
       <Tabs defaultValue="signin" className="w-full max-w-sm">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="signin">Sign In</TabsTrigger>
-          <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          <TabsTrigger value="signin">Entrar</TabsTrigger>
+          <TabsTrigger value="signup">Cadastrar</TabsTrigger>
         </TabsList>
         <TabsContent value="signin">
           <Card>
             <CardHeader>
-              <CardTitle>Sign In</CardTitle>
+              <CardTitle>Entrar</CardTitle>
               <CardDescription>
-                Access your OlimpoFit account.
+                Acesse sua conta OlimpoFit.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -168,9 +168,9 @@ export default function AuthPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>E-mail</FormLabel>
                         <FormControl>
-                          <Input placeholder="m@example.com" {...field} />
+                          <Input placeholder="m@exemplo.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -181,7 +181,7 @@ export default function AuthPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel>Senha</FormLabel>
                         <FormControl>
                           <Input type="password" {...field} />
                         </FormControl>
@@ -191,7 +191,7 @@ export default function AuthPage() {
                   />
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Sign In
+                    Entrar
                   </Button>
                 </form>
               </Form>
@@ -201,9 +201,9 @@ export default function AuthPage() {
         <TabsContent value="signup">
           <Card>
             <CardHeader>
-              <CardTitle>Sign Up</CardTitle>
+              <CardTitle>Cadastrar</CardTitle>
               <CardDescription>
-                Create your account to start your fitness journey.
+                Crie sua conta para começar sua jornada fitness.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -215,9 +215,9 @@ export default function AuthPage() {
                       name="firstName"
                       render={({ field }) => (
                         <FormItem className="flex-1">
-                          <FormLabel>First Name</FormLabel>
+                          <FormLabel>Nome</FormLabel>
                           <FormControl>
-                            <Input placeholder="John" {...field} />
+                            <Input placeholder="João" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -228,9 +228,9 @@ export default function AuthPage() {
                       name="lastName"
                       render={({ field }) => (
                         <FormItem className="flex-1">
-                          <FormLabel>Last Name</FormLabel>
+                          <FormLabel>Sobrenome</FormLabel>
                           <FormControl>
-                            <Input placeholder="Doe" {...field} />
+                            <Input placeholder="Silva" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -242,9 +242,9 @@ export default function AuthPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>E-mail</FormLabel>
                         <FormControl>
-                          <Input placeholder="m@example.com" {...field} />
+                          <Input placeholder="m@exemplo.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -255,7 +255,7 @@ export default function AuthPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel>Senha</FormLabel>
                         <FormControl>
                           <Input type="password" {...field} />
                         </FormControl>
@@ -265,7 +265,7 @@ export default function AuthPage() {
                   />
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Sign Up
+                    Cadastrar
                   </Button>
                 </form>
               </Form>
@@ -274,7 +274,7 @@ export default function AuthPage() {
         </TabsContent>
       </Tabs>
         <div className="mt-4 text-center text-sm text-muted-foreground">
-            Or
+            Ou
         </div>
          <Button
             variant="outline"
@@ -283,10 +283,10 @@ export default function AuthPage() {
             disabled={isLoading}
           >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Continue as Guest
+            Continuar como Convidado
         </Button>
       <footer className="absolute bottom-4 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} OlimpoFit. All rights reserved.
+        © {new Date().getFullYear()} OlimpoFit. Todos os direitos reservados.
       </footer>
     </div>
   );

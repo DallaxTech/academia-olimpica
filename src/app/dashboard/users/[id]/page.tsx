@@ -6,10 +6,10 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
 
   return (
     <>
-      <PageHeader title="Athlete Profile" />
+      <PageHeader title="Perfil do Atleta" />
        <div>
-        <p>User profiles are under construction. Please check back later.</p>
-        <p>User ID: {params.id}</p>
+        <p>Os perfis de usuário estão em construção. Por favor, volte mais tarde.</p>
+        <p>ID do Usuário: {params.id}</p>
       </div>
     </>
   );
