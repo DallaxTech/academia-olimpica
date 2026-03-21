@@ -14,6 +14,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuSkeleton,
 } from '@/components/ui/sidebar';
 import { Logo } from './logo';
 import { UserNav } from './user-nav';
@@ -56,7 +57,7 @@ export function MainNav() {
     return doc(firestore, 'userProfiles', user.uid);
   }, [user, firestore]);
   
-  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
   // Default to athlete role if not loaded or anonymous
   const userRole = userProfile?.roleId || (user?.isAnonymous ? Role.Athlete : null);
@@ -69,22 +70,31 @@ export function MainNav() {
         <Logo />
       </SidebarHeader>
       <SidebarContent className="p-2">
-        <SidebarMenu>
-          {visibleItems.map(item => (
-            <SidebarMenuItem key={item.href}>
-              <SidebarMenuButton
-                asChild
-                isActive={pathname === item.href}
-                className="justify-start"
-              >
-                <Link href={item.href}>
-                  <item.icon className="h-5 w-5 mr-2" />
-                  <span>{item.label}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
+        {isProfileLoading ? (
+          <SidebarMenu>
+            <SidebarMenuSkeleton showIcon />
+            <SidebarMenuSkeleton showIcon />
+            <SidebarMenuSkeleton showIcon />
+            <SidebarMenuSkeleton showIcon />
+          </SidebarMenu>
+        ) : (
+          <SidebarMenu>
+            {visibleItems.map(item => (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === item.href}
+                  className="justify-start"
+                >
+                  <Link href={item.href}>
+                    <item.icon className="h-5 w-5 mr-2" />
+                    <span>{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        )}
       </SidebarContent>
       <div className="p-2 border-t border-border">
         <UserNav />

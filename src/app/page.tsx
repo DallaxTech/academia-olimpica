@@ -72,7 +72,14 @@ export default function AuthPage() {
   const handleSignIn = async (values: z.infer<typeof signInSchema>) => {
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      // Ensure the master admin has the correct role
+      if (values.email === 'grupodallax@gmail.com') {
+        await setDoc(doc(firestore, 'userProfiles', user.uid), { roleId: Role.Admin }, { merge: true });
+      }
+
       router.push('/dashboard');
     } catch (error: any) {
       toast({
