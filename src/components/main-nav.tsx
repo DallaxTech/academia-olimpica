@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { BrainCircuit, Dumbbell, LayoutDashboard, Users, LayoutGrid, List } from 'lucide-react';
+import { BrainCircuit, Dumbbell, LayoutDashboard, Users } from 'lucide-react';
 import { doc } from 'firebase/firestore';
 
 import { Role, UserProfile } from '@/lib/types';
@@ -18,9 +18,7 @@ import {
 import { Logo } from './logo';
 import { UserNav } from './user-nav';
 import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
-import { ThemeToggle } from './theme-toggle';
-import { useLayout } from './layout-provider';
-import { Button } from './ui/button';
+import { GlobalActions } from './global-actions';
 
 const navItems = [
   {
@@ -53,8 +51,7 @@ export function MainNav() {
   const pathname = usePathname();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const { layout, toggleLayout } = useLayout();
-
+  
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'userProfiles', user.uid);
@@ -84,13 +81,7 @@ export function MainNav() {
     <Sidebar>
       <SidebarHeader>
         <Logo />
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={toggleLayout}>
-            {layout === 'list' ? <LayoutGrid className="h-[1.2rem] w-[1.2rem]" /> : <List className="h-[1.2rem] w-[1.2rem]" />}
-            <span className="sr-only">Alternar Visualização</span>
-          </Button>
-          <ThemeToggle />
-        </div>
+        <GlobalActions />
       </SidebarHeader>
       <SidebarContent className="p-2">
         {isLoading ? (

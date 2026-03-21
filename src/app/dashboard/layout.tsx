@@ -11,6 +11,7 @@ import { LayoutProvider, useLayout } from '@/components/layout-provider';
 import { MobileFooter } from '@/components/mobile-footer';
 import { cn } from '@/lib/utils';
 import { Role, UserProfile } from '@/lib/types';
+import { AppHeader } from '@/components/app-header';
 
 
 // This component contains the actual layout structure and logic
@@ -57,12 +58,15 @@ function DashboardApp({ children }: { children: React.ReactNode }) {
         <SidebarProvider>
             <div className="flex h-screen">
                 {showSidebar && <MainNav />}
-                <SidebarInset className={cn(
-                    "p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto",
-                    !showSidebar && 'pb-24' // Add padding for the footer
-                )}>
-                {children}
-                </SidebarInset>
+                <div className="flex-1 flex flex-col w-full">
+                    {!showSidebar && <AppHeader />}
+                    <SidebarInset className={cn(
+                        "p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto",
+                        !showSidebar && 'pb-24' // Add padding for the footer
+                    )}>
+                    {children}
+                    </SidebarInset>
+                </div>
             </div>
             {!showSidebar && <MobileFooter />}
         </SidebarProvider>
