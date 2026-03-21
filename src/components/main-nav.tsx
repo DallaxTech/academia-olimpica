@@ -18,6 +18,7 @@ import {
 import { Logo } from './logo';
 import { UserNav } from './user-nav';
 import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { ThemeToggle } from './theme-toggle';
 
 const navItems = [
   {
@@ -80,6 +81,7 @@ export function MainNav() {
     <Sidebar>
       <SidebarHeader>
         <Logo />
+        <ThemeToggle />
       </SidebarHeader>
       <SidebarContent className="p-2">
         {isLoading ? (
