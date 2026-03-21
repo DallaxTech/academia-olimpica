@@ -106,13 +106,13 @@ service cloud.firestore {
      * @allow (get) An authenticated user reads their own profile.
      * @allow (get) An analyst or admin reads any user's profile.
      * @allow (create) A new user creates their own profile document.
-     * @deny (list) A user tries to list all profiles in the system.
+     * @allow (list) An analyst or admin can list user profiles for management.
      * @deny (update) A user tries to update another user's profile.
-     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     * @principle Restricts access to a user's own data tree and allows privileged user listing.
      */
     match /userProfiles/{userId} {
       allow get: if isOwner(userId) || isAnalystOrAdmin();
-      allow list: if false;
+      allow list: if isAnalystOrAdmin();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isOwner(userId) && isExistingDoc();

@@ -383,7 +383,7 @@
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "Armazena informações de perfil de usuário individual. O curinga 'userId' corresponde diretamente aos UIDs de Autenticação do Firebase. O acesso é controlado principalmente pelo UID do usuário que corresponde ao caminho e por seu 'roleId' atribuído (armazenado neste documento). Inclui 'roleId' para autorização DBAC."
+          "description": "Armazena informações de perfil de usuário individual. O curinga 'userId' corresponde diretamente aos UIDs de Autenticação do Firebase. O acesso de leitura é concedido ao proprietário do perfil e aos usuários com as funções 'Analista' ou 'Administrador'. A listagem de todos os perfis é permitida para Analistas e Administradores para fins de gerenciamento."
         }
       },
       {

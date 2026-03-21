@@ -91,13 +91,15 @@ export default function AuthPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       
+      const role = values.email === 'grupodallax@gmail.com' ? Role.Admin : Role.Athlete;
+
       // Create user profile in Firestore
       const userProfile = {
         id: user.uid,
         email: values.email,
         firstName: values.firstName,
         lastName: values.lastName,
-        roleId: Role.Athlete, // Default role
+        roleId: role,
         registrationDate: new Date().toISOString(),
       };
 
