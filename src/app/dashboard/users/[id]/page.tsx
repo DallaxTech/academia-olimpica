@@ -13,11 +13,12 @@ import { User as UserIcon } from 'lucide-react';
 
 export default function UserProfilePage({ params }: { params: { id: string } }) {
   const firestore = useFirestore();
+  const { id } = params;
   
   const userDocRef = useMemoFirebase(() => {
-    if (!firestore || !params.id) return null;
-    return doc(firestore, 'userProfiles', params.id);
-  }, [firestore, params.id]);
+    if (!firestore || !id) return null;
+    return doc(firestore, 'userProfiles', id);
+  }, [firestore, id]);
 
   const { data: user, isLoading } = useDoc<UserProfile>(userDocRef);
 
