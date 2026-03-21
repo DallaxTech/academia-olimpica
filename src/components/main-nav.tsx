@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { BrainCircuit, Dumbbell, LayoutDashboard, Users } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import type { Role } from '@/lib/types';
+import { Role } from '@/lib/types';
 import {
   Sidebar,
   SidebarContent,
