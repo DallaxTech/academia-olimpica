@@ -149,10 +149,10 @@ export default function AuthPage() {
             <Dumbbell className="h-10 w-10 text-primary-foreground" />
         </div>
         <h1 className="text-5xl font-bold font-headline text-primary-foreground">
-          OlimpoFit
+          Olimpo App
         </h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Forje Sua Força. Defina Seu Legado.
+          da Academia Olímpica
         </p>
       </div>
 
@@ -166,7 +166,7 @@ export default function AuthPage() {
             <CardHeader>
               <CardTitle>Entrar</CardTitle>
               <CardDescription>
-                Acesse sua conta OlimpoFit.
+                Acesse sua conta.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -295,8 +295,10 @@ export default function AuthPage() {
             Continuar como Convidado
         </Button>
       <footer className="absolute bottom-4 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} OlimpoFit. Todos os direitos reservados.
+        © {new Date().getFullYear()} Olimpo App. Todos os direitos reservados.
       </footer>
     </div>
   );
 }
+
+    

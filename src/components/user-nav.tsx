@@ -33,7 +33,7 @@ export function UserNav() {
   }
   
   const displayName = user.isAnonymous ? 'Usuário Anônimo' : user.displayName || user.email;
-  const displayEmail = user.isAnonymous ? 'convidado@olimpo.fit' : user.email;
+  const displayEmail = user.isAnonymous ? 'convidado@olimpo.app' : user.email;
   
   const userAvatar = user.isAnonymous ? PlaceHolderImages.find(img => img.id === 'athlete') : PlaceHolderImages.find(img => img.id === 'admin');
 
@@ -73,3 +73,5 @@ export function UserNav() {
     </DropdownMenu>
   );
 }
+
+    

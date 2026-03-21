@@ -1,5 +1,5 @@
 /**
- * # Firestore Security Rules for OlimpoFit
+ * # Firestore Security Rules for Olimpo App
  *
  * ## Core Philosophy
  * This ruleset enforces a hybrid security model that combines strict user ownership with role-based access and collaborative data sharing. The primary goal is to ensure that users can only access data they own or have been explicitly granted permission to see, while providing elevated privileges to 'Analyst' and 'Administrator' roles. The default security posture is to deny all access unless explicitly allowed.
@@ -223,3 +223,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

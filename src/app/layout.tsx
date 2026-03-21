@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'OlimpoFit',
+  title: 'Olimpo App',
   description: 'Forje Sua Força. Defina Seu Legado.',
 };
 
@@ -30,3 +30,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    
