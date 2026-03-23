@@ -6,10 +6,10 @@ import { Home, Search, Users, BarChart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const footerNavItems = [
-  { href: '/dashboard', label: 'Hoje', icon: Home },
-  { href: '/dashboard/explore', label: 'Explorar', icon: Search },
-  { href: '/dashboard/community', label: 'Comunidade', icon: Users },
-  { href: '/dashboard/performance', label: 'Desempenho', icon: BarChart },
+  { href: '/aluno', label: 'Hoje', icon: Home },
+  { href: '/aluno/explore', label: 'Fichas', icon: Search },
+  { href: '/aluno/community', label: 'Ranking', icon: Users },
+  { href: '/aluno/performance', label: 'Evolução', icon: BarChart },
 ];
 
 export function MobileFooter() {

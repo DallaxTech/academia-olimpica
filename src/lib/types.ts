@@ -12,18 +12,25 @@ export interface UserProfile {
   roleId: Role;
   registrationDate: string;
   lastLoginDate?: string;
+  // Gamification & Tracking for Athlete
+  streak?: number; 
+  lastWorkoutDate?: number; // UNIX timestamp
+  active?: boolean;
 }
 
 export interface Exercise {
   id: string;
   name: string;
   description: string;
+  gifUrl?: string; // Usar GIFs curtos para salvar banda
+  muscleGroup?: string;
 }
 
 export interface WorkoutExercise {
   exercise: Exercise;
   sets: number;
   reps: string;
+  restSeconds?: number;
   isCompleted: boolean;
 }
 
@@ -39,4 +46,13 @@ export interface Workout {
   description: string;
   assignedTo: string[]; // array of user ids
   days: WorkoutDay[];
+}
+
+export interface WorkoutLog {
+  id?: string;
+  userId: string;
+  workoutId: string;
+  dayName: string;
+  completedAt: number; // Data do treino
+  durationMinutes: number;
 }

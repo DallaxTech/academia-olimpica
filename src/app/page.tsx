@@ -9,6 +9,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInAnonymously,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
@@ -76,11 +77,14 @@ export default function AuthPage() {
       const user = userCredential.user;
 
       // Ensure the master admin has the correct role
+      let finalRole = Role.Athlete;
       if (values.email === 'grupodallax@gmail.com') {
+        finalRole = Role.Admin;
         await setDoc(doc(firestore, 'userProfiles', user.uid), { roleId: Role.Admin }, { merge: true });
       }
 
-      router.push('/dashboard');
+      const redirectPath = finalRole === Role.Admin ? '/dashboard' : '/aluno';
+      router.push(redirectPath);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -89,6 +93,31 @@ export default function AuthPage() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    const email = signInForm.getValues('email');
+    if (!email) {
+      toast({
+        variant: 'destructive',
+        title: 'E-mail necessário',
+        description: 'Digite seu e-mail no campo acima antes de clicar em Esqueci a senha.',
+      });
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({
+        title: 'E-mail Enviado!',
+        description: 'Verifique sua caixa de entrada (e o Spam) para criar uma nova senha.',
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao enviar e-mail',
+        description: error.message,
+      });
     }
   };
 
@@ -112,7 +141,8 @@ export default function AuthPage() {
 
       await setDoc(doc(firestore, 'userProfiles', user.uid), userProfile);
       
-      router.push('/dashboard');
+      const redirectPath = role === Role.Admin ? '/dashboard' : '/aluno';
+      router.push(redirectPath);
 
     } catch (error: any) {
       toast({
@@ -129,7 +159,7 @@ export default function AuthPage() {
     setIsLoading(true);
     try {
       await signInAnonymously(auth);
-      router.push('/dashboard');
+      router.push('/aluno');
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -198,6 +228,14 @@ export default function AuthPage() {
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Entrar
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="w-full text-xs text-muted-foreground mt-2" 
+                    onClick={handleResetPassword}
+                  >
+                    Esqueci minha senha
                   </Button>
                 </form>
               </Form>

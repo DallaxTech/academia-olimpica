@@ -1,103 +1,100 @@
 'use client';
 
-import { useState } from 'react';
-import { PageHeader } from '@/components/page-header';
-import { useUser } from '@/firebase';
-import { useLayout } from '@/components/layout-provider';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Calendar } from '@/components/ui/calendar';
-import { Flame, History, Dumbbell } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Users, AlertCircle, Activity, PlusCircle, Dumbbell } from 'lucide-react';
+import { useUser } from '@/firebase';
+import { PageHeader } from '@/components/page-header';
+import { GlobalActions } from '@/components/global-actions';
 
-function AppView() {
-    const [date, setDate] = useState<Date | undefined>(new Date());
-
-    return (
-        <div className="flex flex-col gap-8">
-            <Card>
-                <CardContent className="p-2 md:p-4 flex justify-center">
-                    <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        className="rounded-md"
-                    />
-                </CardContent>
-            </Card>
-
-            <div className="grid gap-4 md:grid-cols-2">
-                 <Card className="flex flex-col">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Flame className="text-primary"/>
-                            <span>Sessões de Hoje</span>
-                        </CardTitle>
-                        <CardDescription>Seu treino agendado para hoje.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-grow flex flex-col items-center justify-center text-center p-6">
-                        <p className="text-muted-foreground mb-4">Nenhum treino para hoje.</p>
-                        <Button>Ver Plano de Treino</Button>
-                    </CardContent>
-                </Card>
-                 <Card className="flex flex-col">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Dumbbell className="text-primary"/>
-                            <span>Meus Treinos</span>
-                        </CardTitle>
-                        <CardDescription>Seus planos de treino ativos.</CardDescription>
-                    </CardHeader>
-                     <CardContent className="flex-grow flex flex-col items-center justify-center text-center p-6">
-                        <p className="text-muted-foreground mb-4">Você não tem planos de treino.</p>
-                        <Button variant="secondary">Explorar Treinos</Button>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <History className="text-primary"/>
-                        <span>Histórico de Sessões</span>
-                    </CardTitle>
-                    <CardDescription>Suas sessões de treino recentes.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-center justify-center h-24 text-muted-foreground">
-                        <p>Nenhuma sessão recente encontrada.</p>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
-
-function DesktopView() {
-    const { user } = useUser();
-    if (!user) return null;
-    const displayName = user.isAnonymous ? "Convidado" : user.email?.split('@')[0] || 'Usuário';
-
-    return (
-        <>
-            <PageHeader
-                title={`Bem-vindo(a), ${displayName}!`}
-                description="Aqui está um resumo do seu status atual."
-            />
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <p>Alterne para a visualização em grade para uma experiência de aplicativo.</p>
-            </div>
-        </>
-    );
-}
-
-
-export default function DashboardPage() {
+export default function AdminDashboard() {
+  const router = useRouter();
   const { user } = useUser();
-  const { layout } = useLayout();
 
-  if (!user) {
-    return null;
-  }
+  // Mock data
+  const metrics = {
+    totalStudents: 142,
+    activeThisWeek: 118,
+    absentStudents: 24, // Alunos sumidos há mais de 7 dias
+  };
 
-  return layout === 'grid' ? <AppView /> : <DesktopView />;
+  if (!user) return null;
+
+  return (
+    <div className="w-full max-w-5xl mx-auto p-4 md:p-6 space-y-8 animate-in fade-in zoom-in-95 duration-500">
+      <PageHeader 
+        title="Painel do Professor" 
+        description="Visão geral da sua academia e alunos."
+      >
+         <div className="hidden md:flex">
+           <GlobalActions />
+         </div>
+      </PageHeader>
+
+      {/* Metrics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-card/50">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total de Alunos</CardTitle>
+            <Users className="w-4 h-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{metrics.totalStudents}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/50">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Ativos na Semana</CardTitle>
+            <Activity className="w-4 h-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-500">{metrics.activeThisWeek}</div>
+            <p className="text-xs text-muted-foreground mt-1">+12% em relação à semana passada</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-destructive/10 border-destructive/30">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-destructive">Alerta de Faltas (7+ dias)</CardTitle>
+            <AlertCircle className="w-4 h-4 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-destructive">{metrics.absentStudents}</div>
+            <Button variant="link" className="px-0 h-auto text-destructive mt-1">Ver lista para cobrança →</Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <div>
+        <h2 className="text-xl font-bold mb-4">Ações Rápidas</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Button 
+            className="h-24 text-lg justify-start px-6 bg-secondary/50 hover:bg-secondary text-foreground hover:text-foreground border border-border" 
+            variant="outline"
+            onClick={() => router.push('/dashboard/workouts/novo')}
+          >
+            <Dumbbell className="w-6 h-6 mr-4 text-primary" />
+            <div className="text-left">
+              <div>Montar Nova Ficha</div>
+              <div className="text-sm font-normal text-muted-foreground">Criar um treino do zero</div>
+            </div>
+          </Button>
+
+          <Button 
+            className="h-24 text-lg justify-start px-6 bg-secondary/50 hover:bg-secondary text-foreground hover:text-foreground border border-border" 
+            variant="outline"
+          >
+            <PlusCircle className="w-6 h-6 mr-4 text-primary" />
+            <div className="text-left">
+              <div>Cadastrar Aluno</div>
+              <div className="text-sm font-normal text-muted-foreground">Enviar convite de acesso</div>
+            </div>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }
