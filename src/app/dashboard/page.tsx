@@ -86,11 +86,12 @@ export default function AdminDashboard() {
           <Button 
             className="h-24 text-lg justify-start px-6 bg-secondary/50 hover:bg-secondary text-foreground hover:text-foreground border border-border" 
             variant="outline"
+            onClick={() => router.push('/dashboard/users')}
           >
-            <PlusCircle className="w-6 h-6 mr-4 text-primary" />
+            <Users className="w-6 h-6 mr-4 text-primary" />
             <div className="text-left">
-              <div>Cadastrar Aluno</div>
-              <div className="text-sm font-normal text-muted-foreground">Enviar convite de acesso</div>
+              <div>Gerenciar Acessos</div>
+              <div className="text-sm font-normal text-muted-foreground">Editar permissões de alunos e professores</div>
             </div>
           </Button>
         </div>

@@ -1,19 +1,31 @@
 'use client';
 
-import { doc } from 'firebase/firestore';
+import { use } from 'react';
+import { doc, updateDoc } from 'firebase/firestore';
 import { PageHeader } from '@/components/page-header';
-import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { Role, UserProfile } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User as UserIcon } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 
-
-export default function UserProfilePage({ params }: { params: { id: string } }) {
+export default function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const firestore = useFirestore();
-  const { id } = params;
+  const { id } = use(params);
+  const { toast } = useToast();
+  const { user: currentUser } = useUser();
+  
+  const currentUserDocRef = useMemoFirebase(() => {
+    if (!firestore || !currentUser) return null;
+    return doc(firestore, 'userProfiles', currentUser.uid);
+  }, [firestore, currentUser]);
+  
+  const { data: currentUserProfile } = useDoc<UserProfile>(currentUserDocRef);
+  const isAdmin = currentUserProfile?.roleId === Role.Admin;
   
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !id) return null;
@@ -30,6 +42,17 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
         return 'secondary';
       default:
         return 'default';
+    }
+  };
+
+  const handleRoleChange = async (newRole: Role) => {
+    if (!firestore || !id) return;
+    try {
+      const ref = doc(firestore, 'userProfiles', id);
+      await updateDoc(ref, { roleId: newRole });
+      toast({ title: 'Acesso Atualizado', description: `Permissões alteradas para ${newRole}.` });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Erro', description: e.message });
     }
   };
 
@@ -87,9 +110,32 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
                         <p>{new Date(user.registrationDate).toLocaleDateString('pt-BR')}</p>
                     </div>
                 </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">ID do Usuário</p>
-                    <p className="font-mono text-xs">{user.id}</p>
+                  <div className="pt-4 border-t mt-4 grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-2">Acesso do Usuário (Função)</p>
+                      <Select 
+                         defaultValue={user.roleId} 
+                         onValueChange={(val) => handleRoleChange(val as Role)}
+                         disabled={!isAdmin}
+                      >
+                         <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Selecione a função" />
+                         </SelectTrigger>
+                         <SelectContent>
+                            <SelectItem value={Role.Athlete}>Aluno (Atleta)</SelectItem>
+                            <SelectItem value={Role.Professor}>Professor</SelectItem>
+                            <SelectItem value={Role.Admin}>Administrador</SelectItem>
+                            <SelectItem value={Role.Analyst}>Analista</SelectItem>
+                         </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-2 max-w-[250px]">
+                         {isAdmin ? 'Altere a permissão deste usuário no sistema.' : 'Apenas Administradores podem alterar os papéis.'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">ID do Banco de Dados</p>
+                      <p className="font-mono text-xs mt-1">{user.id}</p>
+                    </div>
                 </div>
             </CardContent>
         </Card>

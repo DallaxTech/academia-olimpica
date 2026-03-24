@@ -9,10 +9,16 @@ import { Label } from '@/components/ui/label';
 import { PlusCircle, Search, Save, Trash2, GripVertical } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
+import { Loader2 } from 'lucide-react';
 
 export default function WorkoutBuilder() {
   const router = useRouter();
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const { user } = useUser();
+  const [isLoading, setIsLoading] = useState(false);
   const [workoutTitle, setWorkoutTitle] = useState('');
   const [exercises, setExercises] = useState([
     { id: '1', name: 'Supino Reto', sets: 4, reps: '10' }
@@ -30,14 +36,52 @@ export default function WorkoutBuilder() {
     setExercises(exercises.map(ex => ex.id === id ? { ...ex, [field]: value } : ex));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!workoutTitle.trim()) {
       toast({ title: 'Erro', description: 'Dê um nome para a ficha.', variant: 'destructive' });
       return;
     }
-    // Implementar salvamento no Firebase Firestore
-    toast({ title: 'Sucesso!', description: 'Ficha salva na biblioteca.' });
-    setTimeout(() => router.push('/dashboard'), 1500);
+    
+    if (!user || !firestore) {
+      toast({ title: 'Erro', description: 'Usuário não autenticado.', variant: 'destructive' });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // 1. Create the training plan
+      const planData = {
+        name: workoutTitle,
+        description: 'Ficha criada no construtor.',
+        createdByUserId: user.uid,
+        assignedToAthleteIds: [], // Inicia sem alunos atribuídos
+        createdAt: serverTimestamp(),
+      };
+
+      const planRef = await addDoc(collection(firestore, 'trainingPlans'), planData);
+
+      // 2. Add as a workout day (Treino A por padrão)
+      const dayData = {
+        day: 1,
+        name: 'Treino A',
+        exercises: exercises.map(ex => ({
+          exerciseName: ex.name, // Simplificado para armazenamento plano
+          sets: ex.sets,
+          reps: ex.reps,
+          isCompleted: false
+        }))
+      };
+
+      await addDoc(collection(firestore, `trainingPlans/${planRef.id}/workoutDays`), dayData);
+
+      toast({ title: 'Sucesso!', description: 'Ficha salva na biblioteca.' });
+      setTimeout(() => router.push('/dashboard/workouts'), 1500);
+    } catch (e: any) {
+      console.error('Save error:', e);
+      toast({ title: 'Erro ao salvar', description: e.message, variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -47,8 +91,13 @@ export default function WorkoutBuilder() {
           <h1 className="text-3xl font-headline font-bold">Construtor de Treino</h1>
           <p className="text-muted-foreground">Crie uma nova ficha "Arrastar e Soltar"</p>
         </div>
-        <Button onClick={handleSave} className="w-full md:w-auto" size="lg">
-          <Save className="w-4 h-4 mr-2" /> Salvar Ficha
+        <Button onClick={handleSave} className="w-full md:w-auto" size="lg" disabled={isLoading}>
+          {isLoading ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4 mr-2" />
+          )}
+          Salvar Ficha
         </Button>
       </div>
 

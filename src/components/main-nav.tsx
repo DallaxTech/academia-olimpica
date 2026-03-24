@@ -25,25 +25,25 @@ const navItems = [
     href: '/dashboard',
     label: 'Painel',
     icon: LayoutDashboard,
-    roles: [Role.Admin, Role.Analyst, Role.Athlete],
+    roles: [Role.Admin, Role.Analyst, Role.Professor],
   },
   {
     href: '/dashboard/workouts',
     label: 'Treinos',
     icon: Dumbbell,
-    roles: [Role.Admin, Role.Analyst, Role.Athlete],
+    roles: [Role.Admin, Role.Analyst, Role.Professor],
   },
   {
     href: '/dashboard/users',
     label: 'Usuários',
     icon: Users,
-    roles: [Role.Admin, Role.Analyst],
+    roles: [Role.Admin, Role.Analyst, Role.Professor],
   },
   {
     href: '/dashboard/ai-recommender',
     label: 'Recomendador IA',
     icon: BrainCircuit,
-    roles: [Role.Admin, Role.Analyst],
+    roles: [Role.Admin, Role.Analyst, Role.Professor],
   },
 ];
 

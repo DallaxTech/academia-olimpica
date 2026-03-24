@@ -49,7 +49,9 @@ export default function UsersPage() {
         title="Gerenciamento de Usuários"
         description="Visualize e gerencie todos os usuários no sistema."
       >
-        <Button>Adicionar Usuário</Button>
+        <Button asChild>
+          <Link href="/dashboard/users/novo">Adicionar Usuário</Link>
+        </Button>
       </PageHeader>
       
       {layout === 'list' ? (

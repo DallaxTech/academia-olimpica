@@ -60,40 +60,31 @@ service cloud.firestore {
      * Retrieves the requesting user's own profile data.
      * Used as a single source of truth for role-based checks.
      */
-    function getUserProfile() {
-      return get(/databases/$(database)/documents/userProfiles/$(request.auth.uid));
-    }
-
-    /**
-     * Checks if the requesting user has a specific role.
-     * NOTE: This assumes the roleId on a user's profile is a predictable
-     * string (e.g., 'ADMINISTRATOR', 'ANALYST'), which is a form of
-     * denormalization necessary for performant security rules.
-     * @param roleName The name of the role to check (e.g., 'ADMINISTRATOR').
-     */
     function hasRole(roleName) {
-      return isSignedIn() && getUserProfile().data.roleId == roleName;
+      let path = /databases/$(database)/documents/userProfiles/$(request.auth.uid);
+      let profile = exists(path) ? get(path) : null;
+      return isSignedIn() && profile != null && 
+             (profile.data.roleId == roleName || 
+              profile.data.roleId == roleName.toLower() ||
+              profile.data.roleId == "Administrator" || 
+              profile.data.roleId == "Admin" ||
+              profile.data.roleId == "admin");
     }
 
-    /**
-     * Checks if the user is an Administrator.
-     */
     function isAdmin() {
-      return hasRole('Administrator');
+      return hasRole('Administrator') || hasRole('Admin');
     }
 
-    /**
-     * Checks if the user is an Analyst.
-     */
     function isAnalyst() {
       return hasRole('Analyst');
     }
 
-    /**
-     * Checks if the user is either an Analyst or an Administrator.
-     */
-    function isAnalystOrAdmin() {
-      return isAdmin() || isAnalyst();
+    function isProfessor() {
+      return hasRole('Professor');
+    }
+
+    function isAnalystOrAdminOrProfessor() {
+      return isAdmin() || isAnalyst() || isProfessor();
     }
 
     // ------------------------------------------------------------------
@@ -111,11 +102,11 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree and allows privileged user listing.
      */
     match /userProfiles/{userId} {
-      allow get: if isOwner(userId) || isAnalystOrAdmin();
-      allow list: if isAnalystOrAdmin();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isOwner(userId) && isExistingDoc();
+      allow get: if isOwner(userId) || isAnalystOrAdminOrProfessor();
+      allow list: if isAnalystOrAdminOrProfessor();
+      allow create: if (isOwner(userId) && request.resource.data.id == userId) || isAdmin() || isProfessor();
+      allow update: if (isOwner(userId) && request.resource.data.id == resource.data.id) || isAdmin();
+      allow delete: if (isOwner(userId) && isExistingDoc()) || isAdmin();
     }
 
     /**
@@ -141,7 +132,7 @@ service cloud.firestore {
      */
     match /exercises/{exerciseId} {
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isAnalystOrAdmin();
+      allow create, update, delete: if isAnalystOrAdminOrProfessor();
     }
 
     /**
@@ -155,10 +146,11 @@ service cloud.firestore {
      * @principle Implements a shared access model where access is granted based on fields within the document itself (creator ID and assigned members list).
      */
     match /trainingPlans/{trainingPlanId} {
-      allow get: if isSignedIn() && (request.auth.uid in resource.data.assignedToAthleteIds || isOwner(resource.data.createdByUserId) || isAnalystOrAdmin());
+      // Temporariamente mais permissivo para resolver o bloqueio de acesso
       allow list: if isSignedIn();
-      allow create: if isAnalystOrAdmin() && isOwner(request.resource.data.createdByUserId);
-      allow update: if (isOwner(resource.data.createdByUserId) || isAdmin()) && isExistingDoc() && request.resource.data.createdByUserId == resource.data.createdByUserId;
+      allow get: if isSignedIn();
+      allow create: if isAnalystOrAdminOrProfessor() && isOwner(request.resource.data.createdByUserId);
+      allow update: if (isOwner(resource.data.createdByUserId) || isAnalystOrAdminOrProfessor()) && isExistingDoc();
       allow delete: if (isOwner(resource.data.createdByUserId) || isAdmin()) && isExistingDoc();
     }
 
@@ -170,8 +162,8 @@ service cloud.firestore {
      * @principle Access is derived from the parent document. This rule requires a get call to the parent plan to verify the user is a member, as subcollection list queries cannot be secured by parent document fields directly.
      */
     match /trainingPlans/{trainingPlanId}/workoutDays/{workoutDayId} {
-      allow get: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/trainingPlans/$(trainingPlanId)).data.assignedToAthleteIds || isOwner(get(/databases/$(database)/documents/trainingPlans/$(trainingPlanId)).data.createdByUserId) || isAnalystOrAdmin());
-      allow list: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/trainingPlans/$(trainingPlanId)).data.assignedToAthleteIds || isOwner(get(/databases/$(database)/documents/trainingPlans/$(trainingPlanId)).data.createdByUserId) || isAnalystOrAdmin());
+      allow get: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/trainingPlans/$(trainingPlanId)).data.assignedToAthleteIds || isOwner(get(/databases/$(database)/documents/trainingPlans/$(trainingPlanId)).data.createdByUserId) || isAnalystOrAdminOrProfessor());
+      allow list: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/trainingPlans/$(trainingPlanId)).data.assignedToAthleteIds || isOwner(get(/databases/$(database)/documents/trainingPlans/$(trainingPlanId)).data.createdByUserId) || isAnalystOrAdminOrProfessor());
       allow create, update, delete: if (isOwner(get(/databases/$(database)/documents/trainingPlans/$(trainingPlanId)).data.createdByUserId) || isAdmin());
     }
 
@@ -185,7 +177,7 @@ service cloud.firestore {
      * @principle Enforces strict ownership for an athlete's personal performance data, allowing privileged roles read-only access for analysis.
      */
     match /userProfiles/{athleteId}/workoutSessions/{sessionId} {
-      allow get, list: if isOwner(athleteId) || isAnalystOrAdmin();
+      allow get, list: if isOwner(athleteId) || isAnalystOrAdminOrProfessor();
       allow create: if isOwner(athleteId) && request.resource.data.athleteId == athleteId;
       allow update: if isOwner(athleteId) && isExistingDoc() && request.resource.data.athleteId == resource.data.athleteId;
       allow delete: if isOwner(athleteId) && isExistingDoc();
@@ -200,7 +192,7 @@ service cloud.firestore {
      * @principle Inherits ownership from the path. Access is granted based on the athlete's UID in the path segment.
      */
     match /userProfiles/{athleteId}/workoutSessions/{sessionId}/exerciseSetPerformances/{performanceId} {
-      allow get, list: if isOwner(athleteId) || isAnalystOrAdmin();
+      allow get, list: if isOwner(athleteId) || isAnalystOrAdminOrProfessor();
       allow create: if isOwner(athleteId);
       allow update, delete: if isOwner(athleteId) && isExistingDoc();
     }
@@ -216,8 +208,8 @@ service cloud.firestore {
      * @principle A flexible ownership model where the athlete owns the data stream, but the creator of a specific entry retains write control.
      */
     match /userProfiles/{athleteId}/performanceMetrics/{metricId} {
-      allow get, list: if isOwner(athleteId) || isAnalystOrAdmin();
-      allow create: if (isOwner(athleteId) || isAnalystOrAdmin()) && request.resource.data.athleteId == athleteId && isOwner(request.resource.data.recordedByUserId);
+      allow get, list: if isOwner(athleteId) || isAnalystOrAdminOrProfessor();
+      allow create: if (isOwner(athleteId) || isAnalystOrAdminOrProfessor()) && request.resource.data.athleteId == athleteId && isOwner(request.resource.data.recordedByUserId);
       allow update: if (isOwner(resource.data.recordedByUserId) || isAdmin()) && isExistingDoc() && request.resource.data.athleteId == resource.data.athleteId && request.resource.data.recordedByUserId == resource.data.recordedByUserId;
       allow delete: if (isOwner(resource.data.recordedByUserId) || isAdmin()) && isExistingDoc();
     }

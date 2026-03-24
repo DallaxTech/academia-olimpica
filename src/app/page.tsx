@@ -11,7 +11,7 @@ import {
   signInAnonymously,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -76,16 +76,65 @@ export default function AuthPage() {
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
+      // Check for mandatory password change
+      const userDoc = await getDoc(doc(firestore, 'userProfiles', user.uid));
+      const profileData = userDoc.data();
+      
+      if (profileData?.mustChangePassword) {
+        router.push('/dashboard/trocar-senha');
+        return;
+      }
+
       // Ensure the master admin has the correct role
-      let finalRole = Role.Athlete;
+      let finalRole = profileData?.roleId || Role.Athlete;
       if (values.email === 'grupodallax@gmail.com') {
         finalRole = Role.Admin;
         await setDoc(doc(firestore, 'userProfiles', user.uid), { roleId: Role.Admin }, { merge: true });
       }
 
-      const redirectPath = finalRole === Role.Admin ? '/dashboard' : '/aluno';
+      const redirectPath = finalRole === Role.Athlete ? '/aluno' : '/dashboard';
       router.push(redirectPath);
     } catch (error: any) {
+      // Auto-registration logic for temporary passwords
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        try {
+          const { query, collection, where, getDocs } = await import('firebase/firestore');
+          const usersRef = collection(firestore!, 'userProfiles');
+          const q = query(usersRef, where('email', '==', values.email));
+          const querySnapshot = await getDocs(q);
+          
+          if (!querySnapshot.empty) {
+            const profileDoc = querySnapshot.docs[0];
+            const profileData = profileDoc.data();
+            
+            if (profileData.temporaryPassword && profileData.temporaryPassword === values.password) {
+              // Create the auth user automatically
+              const newUserCred = await createUserWithEmailAndPassword(auth, values.email, values.password);
+              
+              // Map the profile to the new UID
+              const oldId = profileDoc.id;
+              const newId = newUserCred.user.uid;
+              
+              if (oldId !== newId) {
+                const { deleteDoc } = await import('firebase/firestore');
+                await setDoc(doc(firestore!, 'userProfiles', newId), { ...profileData, id: newId });
+                await deleteDoc(doc(firestore!, 'userProfiles', oldId));
+              }
+
+              toast({
+                title: 'Primeiro Acesso Detectado',
+                description: 'Por favor, siga para a troca de senha obrigatória.',
+              });
+              
+              router.push('/dashboard/trocar-senha');
+              return;
+            }
+          }
+        } catch (innerError: any) {
+          console.error('Auto-reg error:', innerError);
+        }
+      }
+
       toast({
         variant: 'destructive',
         title: 'Falha ao Entrar',
