@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, AlertCircle, Activity, PlusCircle, Dumbbell } from 'lucide-react';
+import { Users, AlertCircle, Activity, PlusCircle, Dumbbell, Sparkles } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { PageHeader } from '@/components/page-header';
 import { GlobalActions } from '@/components/global-actions';
@@ -23,13 +23,13 @@ export default function AdminDashboard() {
 
   return (
     <div className="w-full max-w-5xl mx-auto p-4 md:p-6 space-y-8 animate-in fade-in zoom-in-95 duration-500">
-      <PageHeader 
-        title="Painel do Professor" 
+      <PageHeader
+        title="Painel do Professor"
         description="Visão geral da sua academia e alunos."
       >
-         <div className="hidden md:flex">
-           <GlobalActions />
-         </div>
+        <div className="hidden md:flex">
+          <GlobalActions />
+        </div>
       </PageHeader>
 
       {/* Metrics Row */}
@@ -70,7 +70,7 @@ export default function AdminDashboard() {
       {/* Quick Actions */}
       <div>
         <h2 className="text-xl font-bold mb-4">Ações Rápidas</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Button 
             className="h-24 text-lg justify-start px-6 bg-secondary/50 hover:bg-secondary text-foreground hover:text-foreground border border-border" 
             variant="outline"
@@ -91,7 +91,19 @@ export default function AdminDashboard() {
             <Users className="w-6 h-6 mr-4 text-primary" />
             <div className="text-left">
               <div>Gerenciar Acessos</div>
-              <div className="text-sm font-normal text-muted-foreground">Editar permissões de alunos e professores</div>
+              <div className="text-sm font-normal text-muted-foreground">Editar permissões</div>
+            </div>
+          </Button>
+
+          <Button 
+            className="h-24 text-lg justify-start px-6 bg-primary/10 hover:bg-primary/20 text-foreground hover:text-foreground border border-primary/20" 
+            variant="outline"
+            onClick={() => router.push('/dashboard/ai-recommender')}
+          >
+            <Sparkles className="w-6 h-6 mr-4 text-primary" />
+            <div className="text-left">
+              <div>Olimpo AI</div>
+              <div className="text-sm font-normal text-muted-foreground">Consultoria inteligente</div>
             </div>
           </Button>
         </div>

@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { BrainCircuit, Dumbbell, LayoutDashboard, Users } from 'lucide-react';
+import { BrainCircuit, Dumbbell, LayoutDashboard, Users, BookOpen } from 'lucide-react';
 import { doc } from 'firebase/firestore';
 
 import { Role, UserProfile } from '@/lib/types';
@@ -31,6 +31,12 @@ const navItems = [
     href: '/dashboard/workouts',
     label: 'Treinos',
     icon: Dumbbell,
+    roles: [Role.Admin, Role.Analyst, Role.Professor],
+  },
+  {
+    href: '/dashboard/workouts/exercises',
+    label: 'Exercícios',
+    icon: BookOpen,
     roles: [Role.Admin, Role.Analyst, Role.Professor],
   },
   {

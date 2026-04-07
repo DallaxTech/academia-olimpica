@@ -4,9 +4,11 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Flame, Dumbbell, Trophy, CalendarDays, Activity, LogOut } from 'lucide-react';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { signOut } from 'firebase/auth';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AlunoDashboard() {
   const router = useRouter();
@@ -22,14 +24,24 @@ export default function AlunoDashboard() {
     }
   };
 
-  // Mock data for UI demonstration
+  const firestore = useFirestore();
+
+  // Fetch training plans assigned to this athlete
+  const assignedPlansQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+      collection(firestore, 'trainingPlans'),
+      where('assignedToAthleteIds', 'array-contains', user.uid),
+      orderBy('createdAt', 'desc'),
+      limit(1)
+    );
+  }, [firestore, user]);
+
+  const { data: plans, isLoading: loadingPlans } = useCollection(assignedPlansQuery);
+  const activePlan = plans && plans.length > 0 ? plans[0] : null;
+
+  // Streak/Progress stats (would ideally be from a 'userStats' collection or similar)
   const streak = 3;
-  const nextWorkout = {
-    id: 'wk-123',
-    name: 'Série A - Peito e Tríceps',
-    duration: '45 min',
-    exercises: 6
-  };
 
   return (
     <div className="w-full max-w-md mx-auto p-4 space-y-6 pt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -54,35 +66,73 @@ export default function AlunoDashboard() {
       </div>
 
       {/* Main Action Card */}
-      <Card className="border-primary/30 shadow-lg shadow-primary/10 bg-card/80 backdrop-blur">
-        <CardHeader>
-          <CardTitle className="text-xl flex items-center gap-2">
-            <Dumbbell className="w-5 h-5 text-primary" />
-            Treino do Dia
-          </CardTitle>
-          <CardDescription>O seu planejamento de hoje</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="bg-secondary/40 p-4 rounded-lg border border-border/50">
-              <h3 className="font-bold text-lg">{nextWorkout.name}</h3>
-              <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1"><Activity className="w-4 h-4"/> {nextWorkout.exercises} exercícios</span>
-                <span className="flex items-center gap-1"><CalendarDays className="w-4 h-4"/> {nextWorkout.duration}</span>
+      {loadingPlans ? (
+        <Card className="border-primary/20 bg-card/50">
+          <CardHeader>
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-4 w-1/3" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-24 w-full" />
+          </CardContent>
+        </Card>
+      ) : activePlan ? (
+        <Card className="border-primary/30 shadow-lg shadow-primary/10 bg-card/80 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center gap-2">
+              <Dumbbell className="w-5 h-5 text-primary" />
+              Treino do Dia
+            </CardTitle>
+            <CardDescription>O seu planejamento de hoje</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="bg-secondary/40 p-4 rounded-lg border border-border/50">
+                <h3 className="font-bold text-lg">{activePlan.name}</h3>
+                <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1"><Activity className="w-4 h-4"/> {activePlan.workoutDaysCount || activePlan.daysCount || 0} dias de treino</span>
+                  <p className="text-xs line-clamp-1 mt-1">{activePlan.description}</p>
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button 
-            className="w-full text-lg h-14 font-bold shadow-lg shadow-primary/20 transition-transform active:scale-95" 
-            size="lg"
-            onClick={() => router.push(`/aluno/treino/${nextWorkout.id}`)}
-          >
-            Começar Treino
-          </Button>
-        </CardFooter>
-      </Card>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              className="w-full text-lg h-14 font-bold shadow-lg shadow-primary/20 transition-transform active:scale-95" 
+              size="lg"
+              onClick={() => router.push(`/aluno/treino/${activePlan.id}`)}
+            >
+              Começar Treino
+            </Button>
+          </CardFooter>
+        </Card>
+      ) : (
+        <Card className="border-dashed bg-card/30 flex flex-col items-center justify-center p-8 text-center">
+          <Dumbbell className="w-12 h-12 text-muted-foreground/30 mb-4" />
+          <CardTitle className="text-lg">Nenhum treino vinculado</CardTitle>
+          <CardDescription className="mt-2">
+            Fale com seu professor para receber sua nova ficha de treinamento.
+          </CardDescription>
+        </Card>
+      )}
+
+      {/* Saúde & Avaliação */}
+      <div className="pt-2">
+        <Card 
+          className="bg-primary/5 border-primary/20 cursor-pointer transition-all hover:bg-primary/10 active:scale-[0.98]"
+          onClick={() => router.push('/aluno/anamnese')}
+        >
+          <CardHeader className="p-4 flex flex-row items-center gap-4">
+            <div className="bg-primary/20 p-2 rounded-lg">
+              <Activity className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Anamnese & Saúde</CardTitle>
+              <CardDescription>Mantenha seus dados de saúde atualizados</CardDescription>
+            </div>
+          </CardHeader>
+        </Card>
+      </div>
 
       {/* Progress Track */}
       <div>
