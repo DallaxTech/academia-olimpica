@@ -354,6 +354,7 @@ interface ExerciseCardProps {
 
 function ExerciseCard({ ex, exIdx, dayId, updateExercise, removeExercise, libraryExercises }: ExerciseCardProps) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const { toast } = useToast();
   
   return (
     <Card className="bg-card/40 border-primary/5 hover:border-primary/20 transition-all group">
@@ -377,7 +378,6 @@ function ExerciseCard({ ex, exIdx, dayId, updateExercise, removeExercise, librar
                         updateExercise(dayId, ex.id, 'name', e.target.value);
                         if (!isPopoverOpen) setIsPopoverOpen(true);
                      }}
-                     onFocus={() => setIsPopoverOpen(true)}
                    />
                  </PopoverTrigger>
                  <PopoverContent className="p-0 w-80 shadow-2xl border-primary/10" align="start">
@@ -396,6 +396,11 @@ function ExerciseCard({ ex, exIdx, dayId, updateExercise, removeExercise, librar
                                   updateExercise(dayId, ex.id, 'videoUrl', libEx.videoUrl);
                                 }
                                 setIsPopoverOpen(false);
+                                toast({
+                                  title: "Exercício Adicionado",
+                                  description: `${libEx.name} foi configurado nesta série.`,
+                                  duration: 2000,
+                                });
                              }}
                            >
                              <span className="font-medium">{libEx.name}</span>
