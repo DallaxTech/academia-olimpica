@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 
 const footerNavItems = [
   { href: '/aluno', label: 'Hoje', icon: Home },
-  { href: '/aluno/explore', label: 'Fichas', icon: Search },
+  { href: '/aluno/fichas', label: 'Fichas', icon: Search },
   { href: '/aluno/community', label: 'Ranking', icon: Users },
   { href: '/aluno/performance', label: 'Evolução', icon: BarChart },
 ];
