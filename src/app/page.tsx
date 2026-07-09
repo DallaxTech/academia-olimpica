@@ -40,6 +40,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { Role } from '@/lib/types';
+import { Logo } from '@/components/logo';
 
 const signInSchema = z.object({
   email: z.string().email({ message: 'Endereço de e-mail inválido.' }),
@@ -223,13 +224,8 @@ export default function AuthPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4">
-       <div className="flex flex-col items-center text-center mb-8">
-        <h1 className="text-5xl font-bold font-headline text-primary-foreground">
-          Olimpo
-        </h1>
-        <p className="mt-2 text-lg text-muted-foreground">
-          Um App da Academia Olímpica
-        </p>
+      <div className="mb-12">
+        <Logo size="lg" />
       </div>
 
       <Tabs defaultValue="signin" className="w-full max-w-sm">

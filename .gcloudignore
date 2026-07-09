@@ -1,0 +1,9 @@
+node_modules/
+.next/
+out/
+.git/
+.agents/
+.gemini/
+dev_logs.txt
+firebase-debug.log
+firestore-debug.log

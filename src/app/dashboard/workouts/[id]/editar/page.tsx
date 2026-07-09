@@ -1,17 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PlusCircle, Search, Save, Trash2, Plus, CalendarDays, RotateCcw } from 'lucide-react';
+import { PlusCircle, Search, Save, Trash2, Plus, CalendarDays, RotateCcw, Loader2 } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
-import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
-import { collection, serverTimestamp, writeBatch, doc, query, orderBy } from 'firebase/firestore';
-import { Loader2 } from 'lucide-react';
+import { useDoc, useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { collection, doc, serverTimestamp, writeBatch, query, orderBy } from 'firebase/firestore';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -110,26 +109,38 @@ const FEMALE_TEMPLATE_DAYS: WorkoutDay[] = [
   }
 ];
 
-export default function WorkoutBuilder() {
+export default function EditWorkoutPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
-  const [isLoading, setIsLoading] = useState(false);
+
+  const [isSaving, setIsSaving] = useState(false);
   const [workoutTitle, setWorkoutTitle] = useState('');
-  const [workoutDescription, setWorkoutDescription] = useState('Ficha criada no construtor v2.');
-  
-  const [workoutDays, setWorkoutDays] = useState<WorkoutDay[]>([
-    { 
-      id: 'day-1', 
-      name: 'Treino A', 
-      exercises: [{ id: 'ex-1', name: 'Supino Reto', sets: 4, reps: '10' }] 
-    }
-  ]);
-  
-  const [activeDayId, setActiveDayId] = useState('day-1');
-  const [showTemplateSelector, setShowTemplateSelector] = useState(true);
+  const [workoutDescription, setWorkoutDescription] = useState('');
   const [selectedGender, setSelectedGender] = useState<'male' | 'female' | 'custom' | null>(null);
+  
+  const [workoutDays, setWorkoutDays] = useState<WorkoutDay[]>([]);
+  const [activeDayId, setActiveDayId] = useState('');
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [initialDayIds, setInitialDayIds] = useState<string[]>([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
+
+  // Firestore Queries
+  const planRef = useMemoFirebase(() => {
+    if (!firestore || !id) return null;
+    return doc(firestore, 'trainingPlans', id);
+  }, [firestore, id]);
+
+  const { data: plan, isLoading: isPlanLoading } = useDoc<any>(planRef);
+
+  const daysRef = useMemoFirebase(() => {
+    if (!firestore || !id) return null;
+    return query(collection(firestore, `trainingPlans/${id}/workoutDays`), orderBy('dayOrder', 'asc'));
+  }, [firestore, id]);
+
+  const { data: days, isLoading: isDaysLoading } = useCollection<any>(daysRef);
 
   const exercisesRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -137,6 +148,34 @@ export default function WorkoutBuilder() {
   }, [firestore, user]);
 
   const { data: libraryExercises } = useCollection(exercisesRef);
+
+  // Load existing data into state
+  useEffect(() => {
+    if (plan && days && !dataLoaded) {
+      setWorkoutTitle(plan.name || '');
+      setWorkoutDescription(plan.description || '');
+      setSelectedGender(plan.gender || 'custom');
+      
+      const loadedDays = days.map((day: any) => ({
+        id: day.id,
+        name: day.name || '',
+        exercises: (day.exercises || []).map((ex: any, idx: number) => ({
+          id: ex.id || `ex-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 4)}`,
+          name: ex.exerciseName || '',
+          sets: ex.sets || 3,
+          reps: ex.reps || '10',
+          videoUrl: ex.videoUrl || ''
+        }))
+      }));
+
+      setWorkoutDays(loadedDays);
+      setInitialDayIds(days.map((d: any) => d.id));
+      if (loadedDays.length > 0) {
+        setActiveDayId(loadedDays[0].id);
+      }
+      setDataLoaded(true);
+    }
+  }, [plan, days, dataLoaded]);
 
   const applyTemplate = (gender: 'male' | 'female' | 'custom') => {
     setSelectedGender(gender);
@@ -147,12 +186,12 @@ export default function WorkoutBuilder() {
       setActiveDayId(MALE_TEMPLATE_DAYS[0].id);
     } else if (gender === 'female') {
       setWorkoutTitle('Ficha de Treino ABC - Feminino');
-      setWorkoutDescription('Ficha padrão sugerida para o perfil feminino (A: Quadríceps/Glúteos, B: Superiores/Core, C: Posteriores/Glúteos).');
+      setWorkoutDescription('Ficha padrão sugerida para o perfil feminino (A: Quadríceps/Glúteos, B: Superiores/Core, C: Posterior/Glúteos).');
       setWorkoutDays(FEMALE_TEMPLATE_DAYS);
       setActiveDayId(FEMALE_TEMPLATE_DAYS[0].id);
     } else {
       setWorkoutTitle('');
-      setWorkoutDescription('Ficha criada no construtor v2.');
+      setWorkoutDescription('Ficha personalizada.');
       setWorkoutDays([
         { 
           id: 'day-1', 
@@ -167,7 +206,7 @@ export default function WorkoutBuilder() {
 
   const addDay = () => {
     const nextLetter = String.fromCharCode(65 + workoutDays.length);
-    const newId = `day-${Date.now()}`;
+    const newId = `day-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
     setWorkoutDays([
       ...workoutDays, 
       { id: newId, name: `Treino ${nextLetter}`, exercises: [] }
@@ -175,16 +214,16 @@ export default function WorkoutBuilder() {
     setActiveDayId(newId);
   };
 
-  const removeDay = (id: string) => {
+  const removeDay = (dayId: string) => {
     if (workoutDays.length === 1) return;
-    const filtered = workoutDays.filter(d => d.id !== id);
+    const filtered = workoutDays.filter(d => d.id !== dayId);
     const reLabeled = filtered.map((day, idx) => ({
       ...day,
       name: `Treino ${String.fromCharCode(65 + idx)}`
     }));
     setWorkoutDays(reLabeled);
-    if (activeDayId === id) {
-      setActiveDayId(reLabeled[Math.min(activeDayId === id ? 0 : 0, reLabeled.length - 1)].id);
+    if (activeDayId === dayId) {
+      setActiveDayId(reLabeled[0].id);
     }
   };
 
@@ -193,7 +232,7 @@ export default function WorkoutBuilder() {
       if (day.id === dayId) {
         return {
           ...day,
-          exercises: [...day.exercises, { id: `ex-${Date.now()}`, name: '', sets: 3, reps: '12', videoUrl: '' }]
+          exercises: [...day.exercises, { id: `ex-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`, name: '', sets: 3, reps: '12', videoUrl: '' }]
         };
       }
       return day;
@@ -235,33 +274,45 @@ export default function WorkoutBuilder() {
       return;
     }
 
-    setIsLoading(true);
+    setIsSaving(true);
     try {
       const batch = writeBatch(firestore);
       
-      const planRef = doc(collection(firestore, 'trainingPlans'));
-      const planData = {
-        id: planRef.id,
+      // 1. Update core training plan document
+      const currentPlanRef = doc(firestore, 'trainingPlans', id);
+      batch.update(currentPlanRef, {
         name: workoutTitle,
         description: workoutDescription,
-        createdByUserId: user.uid,
-        assignedToAthleteIds: [],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
         daysCount: workoutDays.length,
-        gender: selectedGender || 'custom'
-      };
+        gender: selectedGender || 'custom',
+        updatedAt: serverTimestamp(),
+      });
 
-      batch.set(planRef, planData);
+      // 2. Identify removed days to delete them from subcollection
+      const currentDayIds = workoutDays.map(d => d.id);
+      const daysToDelete = initialDayIds.filter(idToDelete => !currentDayIds.includes(idToDelete));
+      
+      daysToDelete.forEach(dayId => {
+        const docRef = doc(firestore, 'trainingPlans', id, 'workoutDays', dayId);
+        batch.delete(docRef);
+      });
 
+      // 3. Set or update remaining workoutDays
       workoutDays.forEach((day, index) => {
-        const dayRef = doc(collection(firestore, `trainingPlans/${planRef.id}/workoutDays`));
+        let dayRef;
+        if (initialDayIds.includes(day.id)) {
+          dayRef = doc(firestore, 'trainingPlans', id, 'workoutDays', day.id);
+        } else {
+          // If it's a new day added in edit mode
+          dayRef = doc(collection(firestore, 'trainingPlans', id, 'workoutDays'));
+        }
+
         const dayData = {
           id: dayRef.id,
           dayOrder: index + 1,
           name: day.name,
           trainingPlanOwnerId: user.uid,
-          trainingPlanAssignedToAthleteIds: [],
+          trainingPlanAssignedToAthleteIds: plan?.assignedToAthleteIds || [],
           exercises: day.exercises.map(ex => ({
             exerciseName: ex.name,
             sets: ex.sets,
@@ -275,15 +326,38 @@ export default function WorkoutBuilder() {
 
       await batch.commit();
 
-      toast({ title: 'Sucesso!', description: 'Ficha completa salva na biblioteca.' });
-      setTimeout(() => router.push('/dashboard/workouts'), 1500);
+      toast({ title: 'Sucesso!', description: 'Treino atualizado com sucesso.' });
+      setTimeout(() => router.push(`/dashboard/workouts/${id}`), 1000);
     } catch (e: any) {
-      console.error('Save error:', e);
+      console.error('Update error:', e);
       toast({ title: 'Erro ao salvar', description: e.message, variant: 'destructive' });
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
+
+  const isLoading = isPlanLoading || isDaysLoading || !dataLoaded;
+
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-[80vh] flex flex-col justify-center items-center space-y-4">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        <p className="text-muted-foreground animate-pulse">Carregando ficha de treino para edição...</p>
+      </div>
+    );
+  }
+
+  if (!plan) {
+    return (
+      <div className="w-full min-h-[80vh] flex flex-col justify-center items-center space-y-4">
+        <Card className="p-8 text-center max-w-md">
+          <h2 className="text-xl font-bold text-destructive mb-2">Plano de Treino não encontrado</h2>
+          <p className="text-muted-foreground mb-4">O plano de treino que você está tentando editar não existe ou foi removido.</p>
+          <Button onClick={() => router.push('/dashboard/workouts')}>Voltar para a biblioteca</Button>
+        </Card>
+      </div>
+    );
+  }
 
   const activeDay = workoutDays.find(d => d.id === activeDayId) || workoutDays[0];
 
@@ -291,9 +365,9 @@ export default function WorkoutBuilder() {
     return (
       <div className="w-full max-w-5xl mx-auto p-4 md:p-8 min-h-[80vh] flex flex-col justify-center items-center space-y-8 animate-in fade-in duration-300">
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-headline font-bold text-primary">Montagem Inteligente de Treino</h1>
+          <h1 className="text-4xl font-headline font-bold text-primary">Alterar Modelo de Ficha</h1>
           <p className="text-muted-foreground max-w-lg mx-auto">
-            Escolha o sexo do perfil de treino para carregar automaticamente uma sugestão de exercícios bem estruturada.
+            Aviso: Ao selecionar um novo modelo, todos os exercícios e dias atuais configurados para esta ficha serão substituídos.
           </p>
         </div>
 
@@ -314,13 +388,7 @@ export default function WorkoutBuilder() {
               </svg>
             </div>
             <h2 className="text-xl font-bold font-headline mb-2 group-hover:text-primary">Homem (Masculino)</h2>
-            <p className="text-sm text-muted-foreground mb-4">Foco em hipertrofia geral, peito, costas, braços e pernas completas.</p>
-            <div className="text-xs text-left bg-background/50 p-3 rounded-lg w-full space-y-1 text-muted-foreground border border-border/20">
-              <p className="font-semibold text-foreground mb-1">Estrutura ABC inclusa:</p>
-              <p>• <strong>Treino A:</strong> Peito, Ombros e Tríceps</p>
-              <p>• <strong>Treino B:</strong> Costas, Trapézio e Bíceps</p>
-              <p>• <strong>Treino C:</strong> Membros Inferiores</p>
-            </div>
+            <p className="text-sm text-muted-foreground mb-4">Substituir pelos exercícios padrão de hipertrofia masculina.</p>
           </button>
 
           {/* Card Feminino */}
@@ -338,13 +406,7 @@ export default function WorkoutBuilder() {
               </svg>
             </div>
             <h2 className="text-xl font-bold font-headline mb-2 group-hover:text-accent">Mulher (Feminino)</h2>
-            <p className="text-sm text-muted-foreground mb-4">Foco em definição de membros inferiores, glúteos, superiores e core.</p>
-            <div className="text-xs text-left bg-background/50 p-3 rounded-lg w-full space-y-1 text-muted-foreground border border-border/20">
-              <p className="font-semibold text-foreground mb-1">Estrutura ABC inclusa:</p>
-              <p>• <strong>Treino A:</strong> Coxas e Glúteos (Foco Quad)</p>
-              <p>• <strong>Treino B:</strong> Superiores e Core</p>
-              <p>• <strong>Treino C:</strong> Posterior e Glúteos</p>
-            </div>
+            <p className="text-sm text-muted-foreground mb-4">Substituir pelos exercícios padrão de definição feminina.</p>
           </button>
 
           {/* Card Em Branco */}
@@ -361,20 +423,14 @@ export default function WorkoutBuilder() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold font-headline mb-2 group-hover:text-foreground">Criar do Zero</h2>
-            <p className="text-sm text-muted-foreground mb-4">Crie sua ficha e adicione cada um dos exercícios de forma totalmente personalizada.</p>
-            <div className="text-xs text-left bg-background/50 p-3 rounded-lg w-full space-y-1 text-muted-foreground border border-border/20">
-              <p className="font-semibold text-foreground mb-1">Sem preenchimento:</p>
-              <p>• Inicia com 1 único dia em branco</p>
-              <p>• Adicione os dias que quiser (A, B, C, D, E...)</p>
-              <p>• Controle total do conteúdo</p>
-            </div>
+            <h2 className="text-xl font-bold font-headline mb-2 group-hover:text-foreground">Começar do Zero</h2>
+            <p className="text-sm text-muted-foreground mb-4">Substituir por uma ficha limpa contendo apenas 1 dia em branco.</p>
           </button>
         </div>
 
         <div className="pt-4">
-          <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => router.back()}>
-            Voltar para a Biblioteca
+          <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => setShowTemplateSelector(false)}>
+            Cancelar e manter ficha atual
           </Button>
         </div>
       </div>
@@ -385,18 +441,18 @@ export default function WorkoutBuilder() {
     <div className="w-full max-w-5xl mx-auto p-4 md:p-8 space-y-8 pb-20 animate-in fade-in duration-300">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-background/50 p-6 rounded-2xl border border-primary/10 backdrop-blur-sm sticky top-4 z-20">
         <div>
-          <h1 className="text-3xl font-headline font-bold text-primary">Novo Plano de Treino</h1>
-          <p className="text-muted-foreground">Configure os dias e exercícios da ficha.</p>
+          <h1 className="text-3xl font-headline font-bold text-primary">Editar Plano de Treino</h1>
+          <p className="text-muted-foreground">Altere a estrutura de dias e exercícios da ficha.</p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
           <Button variant="outline" onClick={() => router.back()}>Cancelar</Button>
-          <Button onClick={handleSave} className="flex-1 md:flex-none" size="lg" disabled={isLoading}>
-            {isLoading ? (
+          <Button onClick={handleSave} className="flex-1 md:flex-none" size="lg" disabled={isSaving}>
+            {isSaving ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            Salvar Ficha Completa
+            Salvar Alterações
           </Button>
         </div>
       </div>
@@ -432,7 +488,7 @@ export default function WorkoutBuilder() {
               
               <div className="pt-4 border-t border-border/30 flex flex-col gap-2">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Modelo ativo: <strong>{selectedGender === 'male' ? 'Masculino' : selectedGender === 'female' ? 'Feminino' : 'Criado do zero'}</strong></span>
+                  <span>Perfil atual: <strong>{selectedGender === 'male' ? 'Masculino' : selectedGender === 'female' ? 'Feminino' : 'Personalizado'}</strong></span>
                 </div>
                 <Button 
                   variant="outline" 
@@ -441,7 +497,7 @@ export default function WorkoutBuilder() {
                   onClick={() => setShowTemplateSelector(true)}
                 >
                   <RotateCcw className="w-3.5 h-3.5 mr-1" />
-                  Mudar Perfil / Modelo
+                  Trocar Modelo/Limpar
                 </Button>
               </div>
             </CardContent>
@@ -493,43 +549,49 @@ export default function WorkoutBuilder() {
 
         {/* Exercises Column */}
         <div className="lg:col-span-2">
-          <Tabs value={activeDayId} onValueChange={setActiveDayId} className="w-full">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <CalendarDays className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-bold">Editando: <span className="text-primary">{activeDay.name}</span></h2>
+          {activeDay ? (
+            <Tabs value={activeDayId} onValueChange={setActiveDayId} className="w-full">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="w-5 h-5 text-primary" />
+                  <h2 className="text-xl font-bold">Editando: <span className="text-primary">{activeDay.name}</span></h2>
+                </div>
+                <Button onClick={() => addExercise(activeDayId)} variant="outline" size="sm" className="bg-primary/5 border-primary/20 hover:bg-primary/10">
+                  <PlusCircle className="w-4 h-4 mr-2" /> Adicionar Exercício
+                </Button>
               </div>
-              <Button onClick={() => addExercise(activeDayId)} variant="outline" size="sm" className="bg-primary/5 border-primary/20 hover:bg-primary/10">
-                <PlusCircle className="w-4 h-4 mr-2" /> Adicionar Exercício
-              </Button>
-            </div>
 
-            {workoutDays.map(day => (
-              <TabsContent key={day.id} value={day.id} className="mt-0 space-y-4">
-                {day.exercises.length > 0 ? (
-                  day.exercises.map((ex, exIdx) => (
-                    <ExerciseCard 
-                      key={ex.id}
-                      ex={ex}
-                      exIdx={exIdx}
-                      dayId={day.id}
-                      updateExercise={updateExercise}
-                      removeExercise={removeExercise}
-                      libraryExercises={libraryExercises || []}
-                    />
-                  ))
-                ) : (
-                  <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-primary/10 rounded-2xl bg-primary/5 text-muted-foreground">
-                    <Dumbbell className="w-12 h-12 mb-4 opacity-20" />
-                    <p>Nenhum exercício neste dia.</p>
-                    <Button onClick={() => addExercise(day.id)} variant="link" className="text-primary mt-2">
-                      Adicionar o primeiro exercício
-                    </Button>
-                  </div>
-                )}
-              </TabsContent>
-            ))}
-          </Tabs>
+              {workoutDays.map(day => (
+                <TabsContent key={day.id} value={day.id} className="mt-0 space-y-4">
+                  {day.exercises.length > 0 ? (
+                    day.exercises.map((ex, exIdx) => (
+                      <ExerciseCard 
+                        key={ex.id}
+                        ex={ex}
+                        exIdx={exIdx}
+                        dayId={day.id}
+                        updateExercise={updateExercise}
+                        removeExercise={removeExercise}
+                        libraryExercises={libraryExercises || []}
+                      />
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-primary/10 rounded-2xl bg-primary/5 text-muted-foreground">
+                      <DumbbellIcon className="w-12 h-12 mb-4 opacity-20" />
+                      <p>Nenhum exercício neste dia.</p>
+                      <Button onClick={() => addExercise(day.id)} variant="link" className="text-primary mt-2">
+                        Adicionar o primeiro exercício
+                      </Button>
+                    </div>
+                  )}
+                </TabsContent>
+              ))}
+            </Tabs>
+          ) : (
+            <div className="text-center p-8 border border-dashed rounded-xl bg-background/20 text-muted-foreground">
+              Selecione ou adicione um dia de treino na barra lateral.
+            </div>
+          )}
         </div>
       </div>
       
@@ -538,7 +600,7 @@ export default function WorkoutBuilder() {
   );
 }
 
-const Dumbbell = ({ className }: { className?: string }) => (
+const DumbbellIcon = ({ className }: { className?: string }) => (
   <svg 
     xmlns="http://www.w3.org/2000/svg" 
     viewBox="0 0 24 24" 
@@ -579,14 +641,15 @@ function ExerciseCard({ ex, exIdx, dayId, updateExercise, removeExercise, librar
              <div className="relative">
                <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground/50 z-10 pointer-events-none" />
                <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                 <PopoverTrigger asChild>
-                   <Input 
-                     placeholder="Selecionar ou digitar exercício..." 
-                     className="pl-9 bg-background/50 border-none focus-visible:ring-primary/30 w-full text-base font-semibold placeholder:font-normal cursor-pointer"
-                     value={ex.name}
-                   />
-                 </PopoverTrigger>
-                 <PopoverContent 
+                  <PopoverTrigger asChild>
+                    <Input 
+                      placeholder="Selecionar ou digitar exercício..." 
+                      className="pl-9 bg-background/50 border-none focus-visible:ring-primary/30 w-full text-base font-semibold placeholder:font-normal cursor-pointer"
+                      value={ex.name}
+                      readOnly
+                    />
+                  </PopoverTrigger>
+                  <PopoverContent 
                     className="p-0 w-80 shadow-2xl border-primary/10 bg-popover overflow-hidden" 
                     align="start"
                   >
@@ -633,7 +696,17 @@ function ExerciseCard({ ex, exIdx, dayId, updateExercise, removeExercise, librar
                             </Button>
                           ))}
                         {(libraryExercises?.filter(libEx => !ex.name || libEx.name.toLowerCase().includes(ex.name.toLowerCase())).length === 0) && (
-                          <p className="text-xs text-center p-4 text-muted-foreground">Nenhum exercício sugerido</p>
+                          <div className="p-2">
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start font-normal text-xs py-1 px-3 text-muted-foreground hover:text-primary transition-colors"
+                              onClick={() => {
+                                setIsPopoverOpen(false);
+                              }}
+                            >
+                              Usar valor digitado: "{ex.name}"
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </ScrollArea>

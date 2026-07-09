@@ -2,18 +2,41 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Funções Auxiliares
+    // --- Funções Auxiliares Comuns ---
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    
-    
-    function isAdmin() {
-      // Bypass temporário para troubleshooting do UID específico do usuário
-      return isAuthenticated() && (request.auth.uid == '1LGNVNiLzzXYEsJKh5JkXG21TA73' || get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.roleId == 'Administrator');
+
+    // --- Funções Ethera ---
+    function isMaster() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'grupodallax@gmail.com' || 
+        request.auth.token.email == 'vasin71888@him6.com'
+      );
     }
-    
+
+    function hasPermission(page, action) {
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      let userDoc = exists(userPath) ? get(userPath).data : null;
+      return isMaster() || (
+        userDoc != null && (
+          userDoc.role == 'admin' || (
+            userDoc.permissions != null && 
+            userDoc.permissions[page] != null && 
+            userDoc.permissions[page][action] == true
+          )
+        )
+      );
+    }
+
+    // --- Funções Olímpica ---
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.uid == '1LGNVNiLzzXYEsJKh5JkXG21TA73' || 
+        get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.roleId == 'Administrator'
+      );
+    }
+
     function isAnalyst() {
       return isAuthenticated() && get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.roleId == 'Analyst';
     }
@@ -22,69 +45,104 @@ service cloud.firestore {
       return isAuthenticated() && get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.roleId == 'Professor';
     }
 
-    // Regras para UserProfiles
-    match /userProfiles/{userId} {
-      // Regra fundamental: Você pode ler seu próprio perfil.
-      // Admins e Analistas podem ler qualquer um.
-      // Professor pode ler qualquer um (necessário para listar alunos).
-      allow read: if isAuthenticated() && (
-        request.auth.uid == userId || 
-        get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.roleId in ['Administrator', 'Analyst', 'Professor']
-      );
-      allow write: if isAuthenticated() && (
-        request.auth.uid == userId || 
-        get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.roleId == 'Administrator'
-      );
-      
-      // Subcoleções do usuário (Sessões, Métricas, Anamnese)
-      match /{allSubcollections=**} {
-        allow read: if isAuthenticated() && (
-          request.auth.uid == userId || 
-          get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.roleId in ['Administrator', 'Analyst', 'Professor']
-        );
-        allow write: if isAuthenticated() && (
-          request.auth.uid == userId || 
-          get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.roleId in ['Administrator', 'Analyst']
-        );
+    // ==========================================
+    // REGRAS ETHERA (Coleção 'users', 'activities', etc)
+    // ==========================================
+    match /users/{userId} {
+      allow get: if isAuthenticated() && (request.auth.uid == userId || isMaster() || hasPermission('userManagement', 'view'));
+      allow list: if isAuthenticated();
+      allow write: if isAuthenticated() && (request.auth.uid == userId || isMaster() || hasPermission('userManagement', 'edit'));
+      match /coraTokens/{tokenId} {
+        allow read, write: if isAuthenticated() && (request.auth.uid == userId || isMaster());
       }
     }
 
-    // Regras para Roles (estático)
-    match /roles/{roleId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+    match /activities/{activityId} {
+      allow read: if isAuthenticated() && (isMaster() || hasPermission('activities', 'view'));
+      allow create: if isAuthenticated() && (isMaster() || hasPermission('activities', 'create'));
+      allow update: if isAuthenticated() && (isMaster() || hasPermission('activities', 'edit') || resource.data.requesterId == request.auth.uid || resource.data.assigneeId == request.auth.uid);
+      allow delete: if isAuthenticated() && (isMaster() || hasPermission('activities', 'delete') || resource.data.requesterId == request.auth.uid);
     }
 
-    // Regras para Exercícios
+    // (Outras coleções Ethera...)
+    match /appointments/{id} { allow read, write: if isAuthenticated() && (isMaster() || hasPermission('calendar', 'view')); }
+    match /consultations/{id} { allow read, write: if isAuthenticated() && (isMaster() || hasPermission('consultations', 'view')); }
+    match /patients/{id} { allow read, write: if isAuthenticated() && (isMaster() || hasPermission('patients', 'view')); }
+    match /attendanceRecords/{id} { allow read, write: if isAuthenticated() && (request.auth.uid == resource.data.employeeId || isMaster()); }
+    match /timeEntries/{id} { allow read, write: if isAuthenticated() && (request.auth.uid == resource.data.userId || isMaster()); }
+    match /stock/{id} { allow read, write: if isAuthenticated() && (isMaster() || hasPermission('suppliesStock', 'view')); }
+
+    // ==========================================
+    // REGRAS OLÍMPICA (Coleção 'userProfiles', 'exercises', etc)
+    // ==========================================
+    match /userProfiles/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin() || isAnalyst() || isProfessor());
+      allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      match /{allSubcollections=**} {
+        allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin() || isAnalyst() || isProfessor());
+        allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin() || isAnalyst() || isProfessor());
+      }
+    }
+
     match /exercises/{exerciseId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin() || isAnalyst() || isProfessor();
     }
 
-    // Regras para Planos de Treino (TrainingPlans)
-    match /trainingPlans/{planId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() || 
-        isAnalyst() || 
-        isProfessor() ||
-        request.auth.uid == resource.data.createdByUserId ||
-        request.auth.uid in resource.data.assignedToAthleteIds
-      );
-      allow create: if isAdmin() || isAnalyst() || isProfessor();
-      allow update, delete: if isAdmin() || ((isAnalyst() || isProfessor()) && request.auth.uid == resource.data.createdByUserId);
+    match /equipment/{equipmentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isAnalyst() || isProfessor();
+    }
 
-      // Subcoleção de dias de treino
+    match /objectives/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isAnalyst() || isProfessor();
+    }
+
+    match /methods/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isAnalyst() || isProfessor();
+    }
+
+    match /rhythms/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isAnalyst() || isProfessor();
+    }
+
+    match /trainingPhases/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isAnalyst() || isProfessor();
+    }
+
+    match /preWorkouts/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isAnalyst() || isProfessor();
+    }
+
+    match /postWorkouts/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isAnalyst() || isProfessor();
+    }
+
+    match /trainingPlans/{planId} {
+      allow read: if isAuthenticated() && (isAdmin() || isAnalyst() || isProfessor() || (resource != null && request.auth.uid in resource.data.assignedToAthleteIds));
+      allow write: if isAdmin() || isAnalyst() || isProfessor();
+
       match /workoutDays/{dayId} {
-        // Usando get() para o pai ou desnormalização no futuro
-        allow read: if isAuthenticated() && (
-          isAdmin() || 
-          isAnalyst() || 
-          isProfessor() ||
-          request.auth.uid == get(/databases/$(database)/documents/trainingPlans/$(planId)).data.createdByUserId ||
-          request.auth.uid in get(/databases/$(database)/documents/trainingPlans/$(planId)).data.assignedToAthleteIds
-        );
+        allow read: if isAuthenticated() && (isAdmin() || isAnalyst() || isProfessor() || (resource != null && request.auth.uid in resource.data.trainingPlanAssignedToAthleteIds));
+        allow write: if isAdmin() || isAnalyst() || isProfessor() || (isAuthenticated() && resource != null && request.auth.uid in resource.data.trainingPlanAssignedToAthleteIds);
+      }
+
+      match /{allPaths=**} {
+        allow read: if isAuthenticated();
         allow write: if isAdmin() || isAnalyst() || isProfessor();
       }
+    }
+
+    // Coleção de Roles (Compartilhada ou similar)
+    match /roles/{roleId} {
+      allow read: if isAuthenticated();
+      allow write: if isMaster() || isAdmin();
     }
   }
 }

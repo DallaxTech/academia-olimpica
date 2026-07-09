@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { BrainCircuit, Dumbbell, LayoutDashboard, Users, BookOpen } from 'lucide-react';
+import { BrainCircuit, Dumbbell, LayoutDashboard, Users, BookOpen, Wrench, Activity, ClipboardList } from 'lucide-react';
 import { doc } from 'firebase/firestore';
 
 import { Role, UserProfile } from '@/lib/types';
@@ -40,15 +40,33 @@ const navItems = [
     roles: [Role.Admin, Role.Analyst, Role.Professor],
   },
   {
+    href: '/dashboard/equipment',
+    label: 'Equipamentos',
+    icon: Wrench,
+    roles: [Role.Admin, Role.Analyst, Role.Professor],
+  },
+  {
     href: '/dashboard/users',
     label: 'Usuários',
     icon: Users,
     roles: [Role.Admin, Role.Analyst, Role.Professor],
   },
   {
+    href: '/dashboard/bioimpedance',
+    label: 'Bioimpedância',
+    icon: Activity,
+    roles: [Role.Admin, Role.Analyst, Role.Professor],
+  },
+  {
     href: '/dashboard/ai-recommender',
     label: 'Recomendador IA',
     icon: BrainCircuit,
+    roles: [Role.Admin, Role.Analyst, Role.Professor],
+  },
+  {
+    href: '/dashboard/cadastros',
+    label: 'Cadastros',
+    icon: ClipboardList,
     roles: [Role.Admin, Role.Analyst, Role.Professor],
   },
 ];
@@ -86,7 +104,7 @@ export function MainNav() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <Logo />
+        <Logo size="sm" variant="horizontal" className="px-2" />
         <GlobalActions />
       </SidebarHeader>
       <SidebarContent className="p-2">

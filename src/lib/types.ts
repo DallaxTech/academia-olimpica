@@ -57,3 +57,13 @@ export interface WorkoutLog {
   completedAt: number; // Data do treino
   durationMinutes: number;
 }
+
+export interface Equipment {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  status: 'active' | 'maintenance' | 'broken';
+  lastMaintenanceDate?: string;
+  image?: string;
+}

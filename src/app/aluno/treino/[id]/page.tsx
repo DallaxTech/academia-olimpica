@@ -4,19 +4,19 @@ import { useState, useEffect, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, ChevronLeft, ArrowRight, Play, Timer, Trophy, Dumbbell, Loader2 } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ArrowRight, Play, Timer, Trophy, Dumbbell, Loader2, AlertTriangle } from 'lucide-react';
 import { Carousel, CarouselContent, CarouselItem, CarouselApi } from "@/components/ui/carousel";
 import { Progress } from "@/components/ui/progress";
-import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc } from 'firebase/firestore';
+import { useFirestore, useDoc, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, orderBy, doc, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExerciseVideo } from '@/components/exercise-video';
-
-// No mock data needed here anymore
+import Image from 'next/image';
 
 export default function WorkoutPlayer({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const firestore = useFirestore();
+  const { user } = useUser();
   const { id: planId } = use(params);
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
@@ -36,8 +36,83 @@ export default function WorkoutPlayer({ params }: { params: Promise<{ id: string
 
   const { data: days, isLoading: loadingDays } = useCollection(daysQuery);
 
+  // Fetch student adaptations
+  const adaptationsRef = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return query(
+      collection(firestore, 'userProfiles', user.uid, 'adaptations'),
+      where('planId', '==', planId)
+    );
+  }, [firestore, user?.uid, planId]);
+
+  const { data: adaptationsRaw } = useCollection<any>(adaptationsRef);
+
+  // Fetch student limitations
+  const limitationsRef = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return query(collection(firestore, 'userProfiles', user.uid, 'limitations'));
+  }, [firestore, user?.uid]);
+
+  const { data: limitations } = useCollection<any>(limitationsRef);
+
   const activeDay = days?.find(d => d.id === selectedDayId);
-  const exercises = activeDay?.exercises || [];
+
+  // Merge athlete-specific adaptations & limitations warnings
+  const exercises = useMemo(() => {
+    if (!activeDay || !activeDay.exercises) return [];
+
+    // Map adaptations keyed by `${dayId}_${exerciseIndex}`
+    const adaptationsMap: Record<string, any> = {};
+    if (adaptationsRaw) {
+      adaptationsRaw.forEach((ad: any) => {
+        adaptationsMap[`${activeDay.id}_${ad.exerciseIndex}`] = ad;
+      });
+    }
+
+    // Filter active limitations
+    const activeLimitations = limitations?.filter((lim: any) => {
+      if (lim.type === 'temporary') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const recDate = new Date(lim.recoveryDate);
+        recDate.setHours(23, 59, 59, 999);
+        return recDate >= today;
+      }
+      return true;
+    }) || [];
+
+    const getLimitation = (exerciseName: string) => {
+      const lowerName = exerciseName.toLowerCase();
+      return activeLimitations.find((lim: any) => {
+        if (lowerName.includes(lim.description.toLowerCase())) return true;
+        return lim.affectedKeywords?.some((k: string) => lowerName.includes(k));
+      });
+    };
+
+    return activeDay.exercises
+      .map((ex: any, idx: number) => {
+        const ad = adaptationsMap[`${activeDay.id}_${idx}`];
+        if (ad?.isDeleted) return null; // filtered out
+
+        const finalName = ad?.substitutedExerciseName || ex.exerciseName || ex.name;
+        const finalSets = ad?.sets ?? ex.sets;
+        const finalReps = ad?.reps ?? ex.reps;
+        const finalVideoUrl = ad?.hasOwnProperty('substitutedVideoUrl') ? ad.substitutedVideoUrl : ex.videoUrl;
+        const limitInfo = getLimitation(finalName);
+
+        return {
+          ...ex,
+          id: ex.id || `exercise-${idx}`,
+          name: finalName,
+          sets: finalSets,
+          reps: finalReps,
+          videoUrl: finalVideoUrl,
+          notes: ad?.notes || ex.notes || '',
+          limitation: limitInfo ? limitInfo.description : null,
+        };
+      })
+      .filter(Boolean) as any[];
+  }, [activeDay, adaptationsRaw, limitations]);
 
   // Memoize the exercise cards to prevent video resets while timer is running
   const memoizedExercises = useMemo(() => exercises.map((ex: any, index: number) => {
@@ -52,7 +127,17 @@ export default function WorkoutPlayer({ params }: { params: Promise<{ id: string
              {ex.videoUrl ? (
                <ExerciseVideo url={ex.videoUrl} className="w-full h-full" />
              ) : (
-               <Play className="w-12 h-12 text-muted-foreground/20" />
+               <div className="w-full h-full relative">
+                 <Image 
+                   src="/images/video-placeholder.png" 
+                   alt="Vídeo em breve" 
+                   fill 
+                   className="object-cover opacity-80"
+                 />
+                 <div className="absolute inset-0 flex items-center justify-center">
+                    <Play className="w-12 h-12 text-white/50" />
+                 </div>
+               </div>
              )}
              <span className="absolute top-3 right-3 bg-black/60 text-white px-2.5 py-1 text-[10px] rounded-full font-bold tracking-wider uppercase backdrop-blur-md border border-white/10 z-20 shadow-lg">
                {ex.target || 'Exercício'}
@@ -64,7 +149,7 @@ export default function WorkoutPlayer({ params }: { params: Promise<{ id: string
           </CardHeader>
           
           <CardContent className="space-y-6">
-            <div className="flex justify-center gap-8 text-center bg-background rounded-lg py-4 border border-border/50">
+            <div className="flex justify-center gap-4 text-center bg-background rounded-lg py-4 border border-border/50">
               <div>
                 <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Séries</p>
                 <p className="text-2xl font-bold font-mono">{setsCount}</p>
@@ -74,7 +159,34 @@ export default function WorkoutPlayer({ params }: { params: Promise<{ id: string
                 <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Rep. alvo</p>
                 <p className="text-2xl font-bold font-mono text-primary">{ex.reps}</p>
               </div>
+              <div className="w-px bg-border"></div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Carga</p>
+                <div className="flex items-center justify-center mt-1">
+                  <LoadInput 
+                    initialValue={ex.carga || ''} 
+                    onSave={(newLoad) => handleUpdateLoad(index, newLoad)} 
+                  />
+                </div>
+              </div>
             </div>
+
+            {ex.notes && (
+              <div className="bg-primary/10 border border-primary/20 p-3 rounded-lg text-sm text-foreground/90 font-medium text-left">
+                <span className="font-bold text-xs uppercase text-primary block tracking-wider mb-0.5">Orientação Especial:</span>
+                {ex.notes}
+              </div>
+            )}
+
+            {ex.limitation && (
+              <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg text-sm text-red-500 font-medium flex items-start gap-2 animate-pulse text-left">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold text-xs uppercase block tracking-wider">Alerta de Saúde / Limitação:</span>
+                  <span>Este exercício afeta uma restrição cadastrada: <strong>{ex.limitation}</strong>. Evite movimentos que causem dor.</span>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
               <p className="text-sm font-medium pt-2 text-center text-muted-foreground">Progresso do Exercício</p>
@@ -135,6 +247,24 @@ export default function WorkoutPlayer({ params }: { params: Promise<{ id: string
       setTimeout(() => {
          api?.scrollNext();
       }, 800);
+    }
+  };
+
+  const handleUpdateLoad = async (exerciseIndex: number, newLoad: string) => {
+    if (!firestore || !planId || !selectedDayId || !activeDay || !activeDay.exercises) return;
+
+    try {
+      const updatedExercises = [...activeDay.exercises];
+      updatedExercises[exerciseIndex] = {
+        ...updatedExercises[exerciseIndex],
+        carga: newLoad
+      };
+
+      const dayRef = doc(firestore, 'trainingPlans', planId, 'workoutDays', selectedDayId);
+      const { updateDoc } = await import('firebase/firestore');
+      await updateDoc(dayRef, { exercises: updatedExercises });
+    } catch (error) {
+      console.error('Error updating load in firestore:', error);
     }
   };
 
@@ -277,5 +407,28 @@ export default function WorkoutPlayer({ params }: { params: Promise<{ id: string
         </div>
       </main>
     </div>
+  );
+}
+
+function LoadInput({ initialValue, onSave }: { initialValue: string; onSave: (val: string) => void }) {
+  const [val, setVal] = useState(initialValue || '');
+
+  useEffect(() => {
+    setVal(initialValue || '');
+  }, [initialValue]);
+
+  return (
+    <input
+      type="text"
+      value={val}
+      placeholder="Ex: 20kg"
+      onChange={(e) => setVal(e.target.value)}
+      onBlur={() => {
+        if (val !== initialValue) {
+          onSave(val);
+        }
+      }}
+      className="w-20 text-center font-bold font-mono text-primary bg-background border border-border/60 rounded px-1 py-0.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
+    />
   );
 }

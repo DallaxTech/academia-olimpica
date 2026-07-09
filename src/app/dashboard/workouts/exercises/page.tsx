@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { PlusCircle, BookOpen, Search, ArrowRight, Play } from 'lucide-react';
+import { PlusCircle, BookOpen, Search, ArrowRight, Play, Upload } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -40,11 +40,18 @@ export default function ExercisesPage() {
         title="Biblioteca de Exercícios"
         description="Gerencie o banco de dados de exercícios da sua academia."
       >
-        <Button asChild>
-          <Link href="/dashboard/workouts/exercises/novo">
-            <PlusCircle className="w-4 h-4 mr-2" /> Novo Exercício
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/workouts/exercises/importar">
+              <Upload className="w-4 h-4 mr-2" /> Importar Excel
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/workouts/exercises/novo">
+              <PlusCircle className="w-4 h-4 mr-2" /> Novo Exercício
+            </Link>
+          </Button>
+        </div>
       </PageHeader>
 
       <div className="relative">

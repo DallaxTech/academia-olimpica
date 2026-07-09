@@ -13,6 +13,51 @@ import { User as UserIcon, Dumbbell, PlusCircle, Trash2, ArrowRight, Loader2, Ac
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { BioimpedanceSheet } from '@/components/bioimpedance-sheet';
+import { LimitationsCard } from '@/components/limitations-card';
+import { WorkoutAdaptationSheet } from '@/components/workout-adaptation-sheet';
+
+
+function getGenderInfo(plan: { gender?: string; name?: string; description?: string }) {
+  const gender = plan.gender?.toLowerCase();
+  const name = plan.name?.toLowerCase() || '';
+  const desc = plan.description?.toLowerCase() || '';
+
+  if (gender === 'male' || name.includes('masculino') || name.includes('homem') || desc.includes('masculino')) {
+    return {
+      label: 'Masculino',
+      class: 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20',
+      icon: (
+        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16 8a4 4 0 11-8 0 4 4 0 018 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 14c-4.418 0-8 2.239-8 5v2h16v-2c0-2.761-3.582-5-8-5z" />
+        </svg>
+      )
+    };
+  }
+
+  if (gender === 'female' || name.includes('feminino') || name.includes('mulher') || desc.includes('feminino')) {
+    return {
+      label: 'Feminino',
+      class: 'bg-accent/15 text-accent border-accent/25 hover:bg-accent/20',
+      icon: (
+        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 11a5 5 0 100-10 5 5 0 000 10zM12 11v9M9 16h6" />
+        </svg>
+      )
+    };
+  }
+
+  return {
+    label: 'Personalizado',
+    class: 'bg-muted/50 text-muted-foreground border-border hover:bg-muted',
+    icon: (
+      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    )
+  };
+}
 
 export default function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const firestore = useFirestore();
@@ -96,15 +141,19 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                   </Avatar>
                   <div>
                       <CardTitle className="text-2xl">{`${user.firstName} ${user.lastName}`}</CardTitle>
-                      <CardDescription className="flex items-center gap-2 mt-1">
+                      <CardDescription className="flex items-center gap-2 mt-1 flex-wrap">
                           <Badge variant={getRoleVariant(user.roleId)}>{user.roleId}</Badge>
                           {user.roleId === Role.Athlete && (
-                            <Button variant="link" size="sm" className="h-auto p-0 text-primary" asChild>
-                              <a href={`/dashboard/users/${id}/anamnese`}>
-                                <Activity className="w-3.5 h-3.5 mr-1" />
-                                Ver Anamnese
-                              </a>
-                            </Button>
+                            <>
+                              <Button variant="link" size="sm" className="h-auto p-0 text-primary" asChild>
+                                <a href={`/dashboard/users/${id}/anamnese`}>
+                                  <Activity className="w-3.5 h-3.5 mr-1" />
+                                  Ver Anamnese
+                                </a>
+                              </Button>
+                              <span className="text-muted-foreground text-xs">•</span>
+                              <BioimpedanceSheet athleteId={user.id} athleteName={`${user.firstName} ${user.lastName}`} />
+                            </>
                           )}
                       </CardDescription>
                   </div>
@@ -152,7 +201,14 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
 
           {/* New Section: Assigned Workouts */}
           {user.roleId === Role.Athlete && (
-            <WorkoutAssignmentSection athleteId={user.id} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              <div className="lg:col-span-2">
+                <WorkoutAssignmentSection athleteId={user.id} />
+              </div>
+              <div>
+                <LimitationsCard athleteId={user.id} />
+              </div>
+            </div>
           )}
         </div>
       ) : (
@@ -268,11 +324,26 @@ function WorkoutAssignmentSection({ athleteId }: { athleteId: string }) {
                       <Dumbbell className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <h4 className="font-bold">{plan.name}</h4>
-                      <p className="text-xs text-muted-foreground">{plan.daysCount || 0} dias de treino</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-bold">{plan.name}</h4>
+                        {(() => {
+                          const info = getGenderInfo(plan);
+                          return (
+                            <Badge variant="outline" className={`${info.class} text-[10px] py-0 px-1.5 h-4 flex items-center shrink-0`}>
+                              {info.label}
+                            </Badge>
+                          );
+                        })()}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{plan.daysCount || 0} dias de treino</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-2">
+                    <WorkoutAdaptationSheet 
+                      athleteId={athleteId}
+                      planId={plan.id}
+                      planName={plan.name}
+                    />
                     <Button variant="outline" size="sm" asChild>
                       <a href={`/dashboard/workouts/${plan.id}`} target="_blank" rel="noreferrer">
                         Ver Ficha <ArrowRight className="w-3 h-3 ml-1" />
