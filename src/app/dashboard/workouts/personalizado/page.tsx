@@ -32,9 +32,16 @@ import {
   Check,
   Flame,
   RefreshCw,
-  GripVertical
+  GripVertical,
+  MoreVertical
 } from 'lucide-react';
 import { Role, UserProfile } from '@/lib/types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface CustomExercise {
   id: string;
@@ -987,28 +994,36 @@ function PersonalizedWorkoutBuilderInner() {
                     <span className={`w-2 h-2 rounded-full ${tab.isEnabled ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/35'}`} />
                     <span className="text-xs">{tab.name}</span>
                   </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-6 text-muted-foreground/75 hover:text-foreground"
-                    onClick={() => renameTab(idx)}
-                    title="Renomear"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                  </Button>
-                  {tabs.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-6 text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
-                      onClick={() => deleteTab(idx)}
-                      title="Excluir"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-6 text-muted-foreground/75 hover:text-foreground"
+                      >
+                        <MoreVertical className="w-3.5 h-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-card border border-primary/10">
+                      <DropdownMenuItem 
+                        onClick={() => renameTab(idx)}
+                        className="flex items-center gap-2 cursor-pointer text-xs font-semibold hover:bg-primary/5"
+                      >
+                        <RefreshCw className="w-3 h-3 text-muted-foreground" />
+                        Renomear Fase
+                      </DropdownMenuItem>
+                      {tabs.length > 1 && (
+                        <DropdownMenuItem 
+                          onClick={() => deleteTab(idx)}
+                          className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-red-500 hover:bg-red-500/10 focus:text-red-500 focus:bg-red-500/10"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Excluir Fase
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               );
             })}
