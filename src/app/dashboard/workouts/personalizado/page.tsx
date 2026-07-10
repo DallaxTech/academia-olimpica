@@ -60,7 +60,7 @@ interface CustomExercise {
   videoUrl?: string;
   description?: string;
   isTimeBased?: boolean;
-  durationSeconds?: number;
+  durationMinutes?: number;
 }
 
 interface WorkoutDay {
@@ -156,7 +156,7 @@ function PersonalizedWorkoutBuilderInner() {
 
   // Exercise builder list
   const [workoutExercises, setWorkoutExercises] = useState<CustomExercise[]>([
-    { id: 'ex-1', name: '', sets: 3, reps: '10', load: '', description: '', isTimeBased: false, durationSeconds: 30 }
+    { id: 'ex-1', name: '', sets: 3, reps: '10', load: '', description: '', isTimeBased: false, durationMinutes: 1 }
   ]);
 
   // Periodic Tabs States
@@ -181,7 +181,7 @@ function PersonalizedWorkoutBuilderInner() {
       days: [
         {
           name: 'Treino A',
-          exercises: [{ id: 'ex-1', name: '', sets: 3, reps: '10', load: '', description: '', isTimeBased: false, durationSeconds: 30 }]
+          exercises: [{ id: 'ex-1', name: '', sets: 3, reps: '10', load: '', description: '', isTimeBased: false, durationMinutes: 1 }]
         }
       ]
     }));
@@ -708,7 +708,7 @@ function PersonalizedWorkoutBuilderInner() {
   const addExercise = () => {
     setWorkoutExercises([
       ...workoutExercises,
-      { id: `ex-${Date.now()}`, name: '', sets: 3, reps: '10', load: '', description: '', isTimeBased: false, durationSeconds: 30 }
+      { id: `ex-${Date.now()}`, name: '', sets: 3, reps: '10', load: '', description: '', isTimeBased: false, durationMinutes: 1 }
     ]);
   };
 
@@ -909,7 +909,7 @@ function PersonalizedWorkoutBuilderInner() {
               videoUrl: ex.videoUrl || '',
               description: ex.description || '',
               isTimeBased: ex.isTimeBased === true,
-              durationSeconds: Number(ex.durationSeconds || 30),
+              durationMinutes: Number(ex.durationMinutes || 1),
               isCompleted: false
             }))
           };
@@ -1624,13 +1624,13 @@ function PersonalizedWorkoutBuilderInner() {
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">Tempo (Segundos)</Label>
+                        <Label className="text-xs text-muted-foreground">Tempo (Minutos)</Label>
                         <Input 
                           type="number"
-                          min={5}
-                          step={5}
-                          value={ex.durationSeconds || 30}
-                          onChange={(e) => updateExercise(index, 'durationSeconds', parseInt(e.target.value) || 30)}
+                          min={0.1}
+                          step={0.1}
+                          value={ex.durationMinutes || 1}
+                          onChange={(e) => updateExercise(index, 'durationMinutes', parseFloat(e.target.value) || 1)}
                           className="bg-background/40 h-9 text-center border-primary/10 text-sm font-semibold"
                         />
                       </div>

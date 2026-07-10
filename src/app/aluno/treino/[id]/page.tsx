@@ -281,14 +281,16 @@ export default function WorkoutPlayer({ params }: { params: Promise<{ id: string
                 <div className="w-px bg-border"></div>
                 <div>
                   <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Tempo Alvo</p>
-                  <p className="text-2xl font-bold font-mono text-primary">{ex.durationSeconds || 30}s</p>
+                  <p className="text-2xl font-bold font-mono text-primary">
+                    {ex.durationMinutes || (ex.durationSeconds ? ex.durationSeconds / 60 : 1)} min
+                  </p>
                 </div>
               </div>
             )}
 
             {ex.isTimeBased && (
               <ExerciseCountdownTimer 
-                durationSeconds={ex.durationSeconds || 30}
+                durationSeconds={Math.round((ex.durationMinutes || (ex.durationSeconds ? ex.durationSeconds / 60 : 1)) * 60)}
                 onTimerComplete={() => {
                   handleCompleteSet(ex.id, setsCount, activeDay?.restSeconds || 60);
                 }}
