@@ -39,6 +39,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { Role, UserProfile } from '@/lib/types';
+import { Switch } from '@/components/ui/switch';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -152,6 +153,7 @@ function PersonalizedWorkoutBuilderInner() {
     date.setDate(date.getDate() + 30); // 30 days from now
     return date.toISOString().split('T')[0];
   });
+  const [defineLimits, setDefineLimits] = useState(true);
 
   // Checklists (Multi-select)
   const [selectedEquipments, setSelectedEquipments] = useState<string[]>([]);
@@ -696,6 +698,8 @@ function PersonalizedWorkoutBuilderInner() {
             }
           }
           setExpirationDate(planData.expirationDate || '');
+          const hasExistingLimits = !!planData.expirationDate || (parsedTabs.length > 0 && !!parsedTabs[0].durationWeeks && parsedTabs[0].durationWeeks !== null);
+          setDefineLimits(hasExistingLimits);
         }
       } catch (error) {
         console.error('Error loading plan for edit:', error);
@@ -847,10 +851,10 @@ function PersonalizedWorkoutBuilderInner() {
         phaseName: primaryTab.phaseName,
         loadPercentage: Number(primaryTab.loadPercentage),
         restSeconds: Number(primaryTab.restSeconds),
-        durationWeeks: Number(primaryTab.durationWeeks),
-        weeklyFrequency: Number(primaryTab.weeklyFrequency),
-        durationFrequency: `${primaryTab.durationWeeks} semanas, ${primaryTab.weeklyFrequency}x por semana`,
-        expirationDate: expirationDate,
+        durationWeeks: defineLimits ? Number(primaryTab.durationWeeks) : null,
+        weeklyFrequency: defineLimits ? Number(primaryTab.weeklyFrequency) : null,
+        durationFrequency: defineLimits ? `${primaryTab.durationWeeks} semanas, ${primaryTab.weeklyFrequency}x por semana` : '',
+        expirationDate: defineLimits ? expirationDate : null,
         selectedEquipments: primaryTab.selectedEquipments,
         selectedPreWorkouts: primaryTab.selectedPreWorkouts,
         selectedPostWorkouts: primaryTab.selectedPostWorkouts,
@@ -865,8 +869,8 @@ function PersonalizedWorkoutBuilderInner() {
           phaseName: t.phaseName || '',
           loadPercentage: Number(t.loadPercentage),
           restSeconds: Number(t.restSeconds),
-          durationWeeks: Number(t.durationWeeks),
-          weeklyFrequency: Number(t.weeklyFrequency),
+          durationWeeks: defineLimits ? Number(t.durationWeeks) : null,
+          weeklyFrequency: defineLimits ? Number(t.weeklyFrequency) : null,
           selectedEquipments: t.selectedEquipments || [],
           selectedPreWorkouts: t.selectedPreWorkouts || [],
           selectedPostWorkouts: t.selectedPostWorkouts || []
@@ -1438,42 +1442,55 @@ function PersonalizedWorkoutBuilderInner() {
               </div>
 
               {/* Duration and Expiration */}
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="space-y-2">
-                  <Label htmlFor="duration-weeks">Duração (Semanas)</Label>
-                  <Input 
-                    id="duration-weeks"
-                    type="number"
-                    min={1}
-                    value={durationWeeks}
-                    onChange={(e) => setDurationWeeks(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="bg-background/50 border-primary/20 text-base font-bold text-center"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="weekly-freq">Frequência Semanal</Label>
-                  <Input 
-                    id="weekly-freq"
-                    type="number"
-                    min={1}
-                    max={7}
-                    value={weeklyFrequency}
-                    onChange={(e) => setWeeklyFrequency(Math.max(1, Math.min(7, parseInt(e.target.value) || 1)))}
-                    className="bg-background/50 border-primary/20 text-base font-bold text-center"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="expiration">Prazo de Vencimento</Label>
-                <Input 
-                  id="expiration"
-                  type="date"
-                  value={expirationDate}
-                  onChange={(e) => setExpirationDate(e.target.value)}
-                  className="bg-background/50 border-primary/20 text-base"
+              <div className="flex items-center justify-between border-t border-border/40 pt-4 pb-1">
+                <Label htmlFor="define-limits" className="cursor-pointer font-bold text-xs text-foreground">Definir Duração, Frequência e Vencimento?</Label>
+                <Switch 
+                  id="define-limits"
+                  checked={defineLimits}
+                  onCheckedChange={setDefineLimits}
                 />
               </div>
+
+              {defineLimits && (
+                <>
+                  <div className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in duration-200">
+                    <div className="space-y-2">
+                      <Label htmlFor="duration-weeks">Duração (Semanas)</Label>
+                      <Input 
+                        id="duration-weeks"
+                        type="number"
+                        min={1}
+                        value={durationWeeks}
+                        onChange={(e) => setDurationWeeks(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="bg-background/50 border-primary/20 text-base font-bold text-center"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="weekly-freq">Frequência Semanal</Label>
+                      <Input 
+                        id="weekly-freq"
+                        type="number"
+                        min={1}
+                        max={7}
+                        value={weeklyFrequency}
+                        onChange={(e) => setWeeklyFrequency(Math.max(1, Math.min(7, parseInt(e.target.value) || 1)))}
+                        className="bg-background/50 border-primary/20 text-base font-bold text-center"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 animate-in fade-in duration-200">
+                    <Label htmlFor="expiration">Prazo de Vencimento</Label>
+                    <Input 
+                      id="expiration"
+                      type="date"
+                      value={expirationDate}
+                      onChange={(e) => setExpirationDate(e.target.value)}
+                      className="bg-background/50 border-primary/20 text-base"
+                    />
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
