@@ -309,7 +309,9 @@ function PersonalizedWorkoutBuilderInner() {
   const deleteTab = (index: number) => {
     if (tabs.length <= 1) return;
     setDeletePhaseIdx(index);
-    setIsDeletePhaseOpen(true);
+    setTimeout(() => {
+      setIsDeletePhaseOpen(true);
+    }, 150);
   };
 
   const handleDeleteTabConfirm = () => {
@@ -338,7 +340,9 @@ function PersonalizedWorkoutBuilderInner() {
   const renameTab = (index: number) => {
     setRenamePhaseIdx(index);
     setRenamePhaseValue(tabs[index]?.name || '');
-    setIsRenamePhaseOpen(true);
+    setTimeout(() => {
+      setIsRenamePhaseOpen(true);
+    }, 150);
   };
 
   const handleRenameTabConfirm = () => {
