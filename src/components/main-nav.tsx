@@ -49,6 +49,12 @@ const navItems = [
     href: '/dashboard/users',
     label: 'Usuários',
     icon: Users,
+    roles: [Role.Admin],
+  },
+  {
+    href: '/dashboard/alunos',
+    label: 'Alunos',
+    icon: Users,
     roles: [Role.Admin, Role.Analyst, Role.Professor],
   },
   {
