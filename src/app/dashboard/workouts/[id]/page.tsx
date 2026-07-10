@@ -263,9 +263,17 @@ export default function WorkoutDetailsPage({ params }: { params: Promise<{ id: s
                                 <div>
                                   <p className="font-medium">{ex.exerciseName || 'Exercício'}</p>
                                   <p className="text-sm text-muted-foreground">
-                                    {ex.sets} séries x {ex.reps} reps
-                                    {ex.carga ? ` | Carga: ${ex.carga}` : ''}
+                                    {ex.isTimeBased ? (
+                                      <span>{ex.sets} séries x {ex.durationSeconds || 30}s (Tempo)</span>
+                                    ) : (
+                                      <span>{ex.sets} séries x {ex.reps} reps{ex.carga ? ` | Carga: ${ex.carga}` : ''}</span>
+                                    )}
                                   </p>
+                                  {ex.description && (
+                                    <p className="text-xs text-muted-foreground italic mt-0.5">
+                                      Obs: {ex.description}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                               {ex.videoUrl && (

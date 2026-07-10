@@ -4,7 +4,7 @@ import { useState, useEffect, use, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, ChevronLeft, ArrowRight, Play, Timer, Trophy, Dumbbell, Loader2, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ArrowRight, Play, Timer, Trophy, Dumbbell, Loader2, AlertTriangle, RotateCcw, Pause } from 'lucide-react';
 import { Carousel, CarouselContent, CarouselItem, CarouselApi } from "@/components/ui/carousel";
 import { Progress } from "@/components/ui/progress";
 import { useFirestore, useDoc, useCollection, useMemoFirebase, useUser } from '@/firebase';
@@ -12,6 +12,92 @@ import { collection, query, orderBy, doc, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExerciseVideo } from '@/components/exercise-video';
 import Image from 'next/image';
+
+interface ExerciseCountdownTimerProps {
+  durationSeconds: number;
+  onTimerComplete: () => void;
+}
+
+function ExerciseCountdownTimer({ durationSeconds, onTimerComplete }: ExerciseCountdownTimerProps) {
+  const [timeRemaining, setTimeRemaining] = useState(durationSeconds);
+  const [isRunning, setIsRunning] = useState(false);
+
+  useEffect(() => {
+    setTimeRemaining(durationSeconds);
+    setIsRunning(false);
+  }, [durationSeconds]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRunning && timeRemaining > 0) {
+      interval = setInterval(() => {
+        setTimeRemaining(t => {
+          if (t <= 1) {
+            setIsRunning(false);
+            onTimerComplete();
+            return 0;
+          }
+          return t - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRunning, timeRemaining, onTimerComplete]);
+
+  const percentage = (timeRemaining / durationSeconds) * 100;
+
+  return (
+    <div className="bg-muted/40 border border-primary/10 rounded-xl p-4 flex flex-col items-center space-y-3">
+      <div className="flex items-center justify-between w-full">
+        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Cronômetro de Execução</span>
+        <span className="text-xs font-mono font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+          Alvo: {durationSeconds}s
+        </span>
+      </div>
+
+      <div className="relative w-full h-3 bg-muted rounded-full overflow-hidden border border-primary/5">
+        <div 
+          className="absolute left-0 top-0 h-full bg-primary transition-all duration-1000 ease-linear"
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+
+      <div className="flex items-center gap-4 w-full">
+        <div className="text-3xl font-black font-mono text-foreground flex-1 text-left">
+          {timeRemaining} <span className="text-xs text-muted-foreground font-normal">segundos</span>
+        </div>
+
+        <div className="flex gap-2">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => setTimeRemaining(durationSeconds)}
+            className="h-9 w-9 p-0 rounded-lg"
+          >
+            <RotateCcw className="w-4 h-4 text-muted-foreground" />
+          </Button>
+
+          <Button 
+            size="sm" 
+            variant={isRunning ? "destructive" : "default"}
+            onClick={() => setIsRunning(!isRunning)}
+            className="h-9 px-4 rounded-lg flex items-center gap-1.5 font-bold"
+          >
+            {isRunning ? (
+              <>
+                <Pause className="w-4 h-4" /> Pause
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4" /> Iniciar
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function WorkoutPlayer({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -164,32 +250,55 @@ export default function WorkoutPlayer({ params }: { params: Promise<{ id: string
           </CardHeader>
           
           <CardContent className="space-y-6">
-            <div className="flex justify-center gap-4 text-center bg-background rounded-lg py-4 border border-border/50">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Séries</p>
-                <p className="text-2xl font-bold font-mono">{setsCount}</p>
-              </div>
-              <div className="w-px bg-border"></div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Rep. alvo</p>
-                <p className="text-2xl font-bold font-mono text-primary">{ex.reps}</p>
-              </div>
-              <div className="w-px bg-border"></div>
-              <div>
-                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Carga</p>
-                <div className="flex items-center justify-center mt-1">
-                  <LoadInput 
-                    initialValue={ex.carga || ''} 
-                    onSave={(newLoad) => handleUpdateLoad(index, newLoad)} 
-                  />
+            {!ex.isTimeBased ? (
+              <div className="flex justify-center gap-4 text-center bg-background rounded-lg py-4 border border-border/50">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Séries</p>
+                  <p className="text-2xl font-bold font-mono">{setsCount}</p>
+                </div>
+                <div className="w-px bg-border"></div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Rep. alvo</p>
+                  <p className="text-2xl font-bold font-mono text-primary">{ex.reps}</p>
+                </div>
+                <div className="w-px bg-border"></div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Carga</p>
+                  <div className="flex items-center justify-center mt-1">
+                    <LoadInput 
+                      initialValue={ex.carga || ''} 
+                      onSave={(newLoad) => handleUpdateLoad(index, newLoad)} 
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex justify-center gap-4 text-center bg-background rounded-lg py-4 border border-border/50">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Séries</p>
+                  <p className="text-2xl font-bold font-mono">{setsCount}</p>
+                </div>
+                <div className="w-px bg-border"></div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Tempo Alvo</p>
+                  <p className="text-2xl font-bold font-mono text-primary">{ex.durationSeconds || 30}s</p>
+                </div>
+              </div>
+            )}
 
-            {ex.notes && (
+            {ex.isTimeBased && (
+              <ExerciseCountdownTimer 
+                durationSeconds={ex.durationSeconds || 30}
+                onTimerComplete={() => {
+                  handleCompleteSet(ex.id, setsCount, activeDay?.restSeconds || 60);
+                }}
+              />
+            )}
+
+            {(ex.notes || ex.description) && (
               <div className="bg-primary/10 border border-primary/20 p-3 rounded-lg text-sm text-foreground/90 font-medium text-left">
-                <span className="font-bold text-xs uppercase text-primary block tracking-wider mb-0.5">Orientação Especial:</span>
-                {ex.notes}
+                <span className="font-bold text-xs uppercase text-primary block tracking-wider mb-0.5">Orientação Especial / Descrição:</span>
+                {ex.notes || ex.description}
               </div>
             )}
 

@@ -58,6 +58,9 @@ interface CustomExercise {
   reps: string;
   load: string;
   videoUrl?: string;
+  description?: string;
+  isTimeBased?: boolean;
+  durationSeconds?: number;
 }
 
 interface WorkoutDay {
@@ -153,7 +156,7 @@ function PersonalizedWorkoutBuilderInner() {
 
   // Exercise builder list
   const [workoutExercises, setWorkoutExercises] = useState<CustomExercise[]>([
-    { id: 'ex-1', name: '', sets: 3, reps: '10', load: '' }
+    { id: 'ex-1', name: '', sets: 3, reps: '10', load: '', description: '', isTimeBased: false, durationSeconds: 30 }
   ]);
 
   // Periodic Tabs States
@@ -178,7 +181,7 @@ function PersonalizedWorkoutBuilderInner() {
       days: [
         {
           name: 'Treino A',
-          exercises: [{ id: 'ex-1', name: '', sets: 3, reps: '10', load: '' }]
+          exercises: [{ id: 'ex-1', name: '', sets: 3, reps: '10', load: '', description: '', isTimeBased: false, durationSeconds: 30 }]
         }
       ]
     }));
@@ -705,7 +708,7 @@ function PersonalizedWorkoutBuilderInner() {
   const addExercise = () => {
     setWorkoutExercises([
       ...workoutExercises,
-      { id: `ex-${Date.now()}`, name: '', sets: 3, reps: '10', load: '' }
+      { id: `ex-${Date.now()}`, name: '', sets: 3, reps: '10', load: '', description: '', isTimeBased: false, durationSeconds: 30 }
     ]);
   };
 
@@ -901,9 +904,12 @@ function PersonalizedWorkoutBuilderInner() {
               id: ex.id || `exercise-${idx}`,
               exerciseName: ex.name,
               sets: Number(ex.sets),
-              reps: ex.reps,
-              carga: ex.load,
+              reps: ex.reps || '',
+              carga: ex.load || '',
               videoUrl: ex.videoUrl || '',
+              description: ex.description || '',
+              isTimeBased: ex.isTimeBased === true,
+              durationSeconds: Number(ex.durationSeconds || 30),
               isCompleted: false
             }))
           };
@@ -1532,38 +1538,38 @@ function PersonalizedWorkoutBuilderInner() {
                     )}
                   </div>
 
-                  {/* Row 2: Sets, Reps, Load, Video link */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Séries</Label>
-                      <Input 
-                        type="number"
-                        min={1}
-                        value={ex.sets}
-                        onChange={(e) => updateExercise(index, 'sets', parseInt(e.target.value) || 1)}
-                        className="bg-background/40 h-9 text-center border-primary/10 text-sm font-semibold"
-                      />
+                  {/* Row 2: Metadata / Type Toggle, Video URL & Description */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground block">Tipo de Meta</Label>
+                      <div className="flex gap-1 bg-muted/40 p-0.5 rounded-lg border border-primary/5">
+                        <button
+                          type="button"
+                          onClick={() => updateExercise(index, 'isTimeBased', false)}
+                          className={`flex-1 text-center py-1.5 text-xs rounded-md transition-all font-semibold ${
+                            !ex.isTimeBased 
+                              ? 'bg-background text-primary shadow-sm border border-primary/10' 
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Repetições
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateExercise(index, 'isTimeBased', true)}
+                          className={`flex-1 text-center py-1.5 text-xs rounded-md transition-all font-semibold ${
+                            ex.isTimeBased 
+                              ? 'bg-background text-primary shadow-sm border border-primary/10' 
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Tempo (Cronômetro)
+                        </button>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Repetições</Label>
-                      <Input 
-                        value={ex.reps}
-                        onChange={(e) => updateExercise(index, 'reps', e.target.value)}
-                        placeholder="Ex: 10 ou 12"
-                        className="bg-background/40 h-9 border-primary/10 text-sm text-center font-semibold"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Carga Inicial</Label>
-                      <Input 
-                        value={ex.load}
-                        onChange={(e) => updateExercise(index, 'load', e.target.value)}
-                        placeholder="Ex: 20kg / S/C"
-                        className="bg-background/40 h-9 border-primary/10 text-sm text-center font-semibold text-primary"
-                      />
-                    </div>
-                    <div className="space-y-1 col-span-2 sm:col-span-1">
-                      <Label className="text-xs text-muted-foreground">Demonstração</Label>
+
+                    <div className="space-y-1 col-span-1">
+                      <Label className="text-xs text-muted-foreground">Demonstração em Vídeo</Label>
                       <Input 
                         value={ex.videoUrl || ''}
                         onChange={(e) => updateExercise(index, 'videoUrl', e.target.value)}
@@ -1571,7 +1577,75 @@ function PersonalizedWorkoutBuilderInner() {
                         className="bg-background/40 h-9 border-primary/10 text-xs"
                       />
                     </div>
+
+                    <div className="space-y-1 col-span-1">
+                      <Label className="text-xs text-muted-foreground">Descrição / Orientação</Label>
+                      <Input 
+                        value={ex.description || ''}
+                        onChange={(e) => updateExercise(index, 'description', e.target.value)}
+                        placeholder="Ex: Execução lenta, foco na contração"
+                        className="bg-background/40 h-9 border-primary/10 text-xs"
+                      />
+                    </div>
                   </div>
+
+                  {/* Row 3: Target Metrics depending on isTimeBased */}
+                  {!ex.isTimeBased ? (
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Séries</Label>
+                        <Input 
+                          type="number"
+                          min={1}
+                          value={ex.sets}
+                          onChange={(e) => updateExercise(index, 'sets', parseInt(e.target.value) || 1)}
+                          className="bg-background/40 h-9 text-center border-primary/10 text-sm font-semibold"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Repetições</Label>
+                        <Input 
+                          value={ex.reps}
+                          onChange={(e) => updateExercise(index, 'reps', e.target.value)}
+                          placeholder="Ex: 10 ou 12"
+                          className="bg-background/40 h-9 border-primary/10 text-sm text-center font-semibold"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Carga Inicial</Label>
+                        <Input 
+                          value={ex.load}
+                          onChange={(e) => updateExercise(index, 'load', e.target.value)}
+                          placeholder="Ex: 20kg / S/C"
+                          className="bg-background/40 h-9 border-primary/10 text-sm text-center font-semibold text-primary"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Tempo (Segundos)</Label>
+                        <Input 
+                          type="number"
+                          min={5}
+                          step={5}
+                          value={ex.durationSeconds || 30}
+                          onChange={(e) => updateExercise(index, 'durationSeconds', parseInt(e.target.value) || 30)}
+                          className="bg-background/40 h-9 text-center border-primary/10 text-sm font-semibold"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Séries (Repetições de Tempo)</Label>
+                        <Input 
+                          type="number"
+                          min={1}
+                          value={ex.sets}
+                          onChange={(e) => updateExercise(index, 'sets', parseInt(e.target.value) || 1)}
+                          className="bg-background/40 h-9 text-center border-primary/10 text-sm font-semibold"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                 </div>
               ))}
