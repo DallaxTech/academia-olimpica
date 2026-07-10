@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, use, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle2, ChevronLeft, ArrowRight, Play, Timer, Trophy, Dumbbell, Loader2, AlertTriangle } from 'lucide-react';
@@ -15,11 +15,15 @@ import Image from 'next/image';
 
 export default function WorkoutPlayer({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const firestore = useFirestore();
   const { user } = useUser();
   const { id: planId } = use(params);
-  const [api, setApi] = useState<CarouselApi>();
+
+  const activePhaseName = searchParams.get('phase') || 'A1';
+
   const [current, setCurrent] = useState(0);
+  const [api, setApi] = useState<CarouselApi>();
   const [completedSets, setCompletedSets] = useState<Record<string, number>>({});
   const [restTimer, setRestTimer] = useState<number | null>(null);
   const [isFinished, setIsFinished] = useState(false);
@@ -35,6 +39,17 @@ export default function WorkoutPlayer({ params }: { params: Promise<{ id: string
   }, [firestore, planId]);
 
   const { data: days, isLoading: loadingDays } = useCollection(daysQuery);
+
+  const filteredDays = useMemo(() => {
+    if (!days) return [];
+    if (!plan?.phases || plan.phases.length === 0) return days;
+    return days.filter((d: any) => {
+      const pName = d.phaseName || 'A1';
+      return pName.toLowerCase() === activePhaseName.toLowerCase();
+    });
+  }, [days, plan, activePhaseName]);
+
+
 
   // Fetch student adaptations
   const adaptationsRef = useMemoFirebase(() => {
@@ -55,7 +70,7 @@ export default function WorkoutPlayer({ params }: { params: Promise<{ id: string
 
   const { data: limitations } = useCollection<any>(limitationsRef);
 
-  const activeDay = days?.find(d => d.id === selectedDayId);
+  const activeDay = filteredDays?.find(d => d.id === selectedDayId);
 
   // Merge athlete-specific adaptations & limitations warnings
   const exercises = useMemo(() => {
@@ -278,6 +293,7 @@ export default function WorkoutPlayer({ params }: { params: Promise<{ id: string
           planId: planId,
           dayId: selectedDayId || 'day-1',
           dayName: activeDay?.name || 'Treino A',
+          phaseName: activeDay?.phaseName || 'A1',
           completedAt: serverTimestamp(),
         });
       } catch (error) {
@@ -328,7 +344,7 @@ export default function WorkoutPlayer({ params }: { params: Promise<{ id: string
           </div>
 
           <div className="grid gap-4 mt-8">
-            {days?.map((day: any) => (
+            {filteredDays?.map((day: any) => (
               <Card 
                 key={day.id} 
                 className="hover:border-primary/50 transition-all cursor-pointer group active:scale-[0.98]"

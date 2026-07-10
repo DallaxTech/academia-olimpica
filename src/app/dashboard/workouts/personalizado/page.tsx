@@ -44,6 +44,28 @@ interface CustomExercise {
   videoUrl?: string;
 }
 
+interface WorkoutDay {
+  name: string;
+  exercises: CustomExercise[];
+}
+
+interface WorkoutTab {
+  name: string;
+  isEnabled: boolean;
+  objectiveName: string;
+  methodName: string;
+  rhythmName: string;
+  phaseName: string;
+  loadPercentage: number;
+  restSeconds: number;
+  durationWeeks: number;
+  weeklyFrequency: number;
+  selectedEquipments: string[];
+  selectedPreWorkouts: string[];
+  selectedPostWorkouts: string[];
+  days: WorkoutDay[];
+}
+
 function PersonalizedWorkoutBuilderInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -117,6 +139,225 @@ function PersonalizedWorkoutBuilderInner() {
   const [workoutExercises, setWorkoutExercises] = useState<CustomExercise[]>([
     { id: 'ex-1', name: '', sets: 3, reps: '10', load: '' }
   ]);
+
+  // Periodic Tabs States
+  const [tabs, setTabs] = useState<WorkoutTab[]>([
+    {
+      name: 'A1',
+      isEnabled: true,
+      objectiveName: '',
+      methodName: '',
+      rhythmName: '',
+      phaseName: '',
+      loadPercentage: 50,
+      restSeconds: 60,
+      durationWeeks: 4,
+      weeklyFrequency: 3,
+      selectedEquipments: [],
+      selectedPreWorkouts: [],
+      selectedPostWorkouts: [],
+      days: [
+        {
+          name: 'Treino A',
+          exercises: [{ id: 'ex-1', name: '', sets: 3, reps: '10', load: '' }]
+        }
+      ]
+    }
+  ]);
+  const [activeTabIdx, setActiveTabIdx] = useState(0);
+  const [activeDayIdx, setActiveDayIdx] = useState(0);
+
+  const saveActiveToTab = (tabIdx: number, dayIdx: number) => {
+    setTabs(prev => {
+      if (tabIdx < 0 || tabIdx >= prev.length) return prev;
+      const newTabs = JSON.parse(JSON.stringify(prev));
+      const activeTab = newTabs[tabIdx];
+      activeTab.objectiveName = selectedObjective;
+      activeTab.methodName = selectedMethod;
+      activeTab.rhythmName = selectedRhythm;
+      activeTab.phaseName = selectedPhase;
+      activeTab.loadPercentage = Number(loadPercentage);
+      activeTab.restSeconds = Number(restSeconds);
+      activeTab.durationWeeks = Number(durationWeeks);
+      activeTab.weeklyFrequency = Number(weeklyFrequency);
+      activeTab.selectedEquipments = selectedEquipments;
+      activeTab.selectedPreWorkouts = selectedPreWorkouts;
+      activeTab.selectedPostWorkouts = selectedPostWorkouts;
+
+      if (activeTab.days && activeTab.days[dayIdx]) {
+        activeTab.days[dayIdx].exercises = workoutExercises;
+      }
+      return newTabs;
+    });
+  };
+
+  const switchTabOrDay = (newTabIdx: number, newDayIdx: number) => {
+    // 1. Save current active values into current active tab/day in list
+    saveActiveToTab(activeTabIdx, activeDayIdx);
+
+    // 2. Read new active values from target tab/day
+    setTabs(prev => {
+      const targetTab = prev[newTabIdx];
+      if (targetTab) {
+        setSelectedObjective(targetTab.objectiveName || '');
+        setSelectedMethod(targetTab.methodName || '');
+        setSelectedRhythm(targetTab.rhythmName || '');
+        setSelectedPhase(targetTab.phaseName || '');
+        setLoadPercentage(targetTab.loadPercentage ?? 50);
+        setRestSeconds(targetTab.restSeconds ?? 60);
+        setDurationWeeks(targetTab.durationWeeks ?? 4);
+        setWeeklyFrequency(targetTab.weeklyFrequency ?? 3);
+        setSelectedEquipments(targetTab.selectedEquipments || []);
+        setSelectedPreWorkouts(targetTab.selectedPreWorkouts || []);
+        setSelectedPostWorkouts(targetTab.selectedPostWorkouts || []);
+
+        const targetDay = targetTab.days[newDayIdx];
+        if (targetDay) {
+          setWorkoutExercises(targetDay.exercises || []);
+        } else {
+          setWorkoutExercises([{ id: 'ex-1', name: '', sets: 3, reps: '10', load: '' }]);
+        }
+      }
+      return prev;
+    });
+
+    // 3. Update active index states
+    setActiveTabIdx(newTabIdx);
+    setActiveDayIdx(newDayIdx);
+  };
+
+  const addTab = () => {
+    const name = prompt("Nome da nova aba/fase (Ex: A1, R2, B3):");
+    if (!name || !name.trim()) return;
+    
+    // Save current active state to the current active tab
+    saveActiveToTab(activeTabIdx, activeDayIdx);
+
+    const newTab: WorkoutTab = {
+      name: name.trim(),
+      isEnabled: true,
+      objectiveName: selectedObjective,
+      methodName: selectedMethod,
+      rhythmName: selectedRhythm,
+      phaseName: selectedPhase,
+      loadPercentage: Number(loadPercentage),
+      restSeconds: Number(restSeconds),
+      durationWeeks: Number(durationWeeks),
+      weeklyFrequency: Number(weeklyFrequency),
+      selectedEquipments: [...selectedEquipments],
+      selectedPreWorkouts: [...selectedPreWorkouts],
+      selectedPostWorkouts: [...selectedPostWorkouts],
+      days: [
+        {
+          name: 'Treino A',
+          exercises: [{ id: 'ex-1', name: '', sets: 3, reps: '10', load: '' }]
+        }
+      ]
+    };
+
+    setTabs(prev => {
+      const nextTabs = [...prev, newTab];
+      setTimeout(() => {
+        switchTabOrDay(nextTabs.length - 1, 0);
+      }, 50);
+      return nextTabs;
+    });
+  };
+
+  const deleteTab = (index: number) => {
+    if (tabs.length <= 1) return;
+    if (!confirm(`Deseja realmente excluir a aba "${tabs[index].name}"?`)) return;
+
+    let targetTabIdx = activeTabIdx;
+    if (activeTabIdx === index) {
+      targetTabIdx = index === 0 ? 0 : index - 1;
+    } else if (activeTabIdx > index) {
+      targetTabIdx = activeTabIdx - 1;
+    }
+
+    setTabs(prev => {
+      const nextTabs = prev.filter((_, idx) => idx !== index);
+      setTimeout(() => {
+        switchTabOrDay(targetTabIdx, 0);
+      }, 50);
+      return nextTabs;
+    });
+  };
+
+  const renameTab = (index: number) => {
+    const newName = prompt(`Novo nome para a aba "${tabs[index].name}":`, tabs[index].name);
+    if (!newName || !newName.trim()) return;
+
+    setTabs(prev => {
+      const nextTabs = [...prev];
+      if (nextTabs[index]) {
+        nextTabs[index].name = newName.trim();
+      }
+      return nextTabs;
+    });
+  };
+
+  const addWorkoutDayToActiveTab = () => {
+    const currentTab = tabs[activeTabIdx];
+    if (!currentTab) return;
+    if (currentTab.days.length >= 4) {
+      toast({
+        variant: 'destructive',
+        title: 'Limite atingido',
+        description: 'Você pode adicionar no máximo 4 fichas (dias de treino) por aba.',
+      });
+      return;
+    }
+
+    const dayLetters = ['A', 'B', 'C', 'D'];
+    const nextLetter = dayLetters[currentTab.days.length] || 'A';
+    const newDayName = `Treino ${nextLetter}`;
+
+    // Save current active day's exercises first
+    const nextTabs = JSON.parse(JSON.stringify(tabs));
+    const activeTab = nextTabs[activeTabIdx];
+    if (activeTab) {
+      activeTab.days[activeDayIdx].exercises = workoutExercises;
+      activeTab.days.push({
+        name: newDayName,
+        exercises: [{ id: `ex-${Date.now()}`, name: '', sets: 3, reps: '10', load: '' }]
+      });
+    }
+
+    setTabs(nextTabs);
+    const targetIdx = currentTab.days.length; // is index of new day since it is appended
+    setTimeout(() => {
+      switchTabOrDay(activeTabIdx, targetIdx);
+    }, 50);
+  };
+
+  const removeWorkoutDayFromActiveTab = (dayIndex: number) => {
+    const currentTab = tabs[activeTabIdx];
+    if (!currentTab || currentTab.days.length <= 1) return;
+    if (!confirm(`Deseja realmente remover a ficha "${currentTab.days[dayIndex].name}"?`)) return;
+
+    let targetDayIdx = activeDayIdx;
+    if (activeDayIdx === dayIndex) {
+      targetDayIdx = dayIndex === 0 ? 0 : dayIndex - 1;
+    } else if (activeDayIdx > dayIndex) {
+      targetDayIdx = activeDayIdx - 1;
+    }
+
+    const nextTabs = JSON.parse(JSON.stringify(tabs));
+    const activeTab = nextTabs[activeTabIdx];
+    if (activeTab) {
+      activeTab.days = activeTab.days.filter((_: any, idx: number) => idx !== dayIndex);
+      const dayLetters = ['A', 'B', 'C', 'D'];
+      activeTab.days.forEach((day: any, idx: number) => {
+        day.name = `Treino ${dayLetters[idx] || 'A'}`;
+      });
+    }
+
+    setTabs(nextTabs);
+    setTimeout(() => {
+      switchTabOrDay(activeTabIdx, targetDayIdx);
+    }, 50);
+  };
 
   // Load libraries from Firestore onSnapshot (realtime)
   useEffect(() => {
@@ -199,53 +440,105 @@ function PersonalizedWorkoutBuilderInner() {
           setGender(planData.gender || 'male');
           setAssignedAthleteIds(planData.assignedToAthleteIds || []);
           
-          setSelectedObjective(planData.objectiveName || '');
-          setObjectiveSearch(planData.objectiveName || '');
-          
-          setSelectedMethod(planData.methodName || '');
-          setMethodSearch(planData.methodName || '');
-          
-          setSelectedRhythm(planData.rhythmName || '');
-          setRhythmSearch(planData.rhythmName || '');
-          
-          setSelectedPhase(planData.phaseName || '');
-          setPhaseSearch(planData.phaseName || '');
-          
-          setLoadPercentage(planData.loadPercentage ?? 50);
-          setRestSeconds(planData.restSeconds ?? 60);
-          setDurationFrequency(planData.durationFrequency || '');
-          setDurationWeeks(planData.durationWeeks ?? 4);
-          setWeeklyFrequency(planData.weeklyFrequency ?? 3);
-          setExpirationDate(planData.expirationDate || '');
-          
-          setSelectedEquipments(planData.selectedEquipments || []);
-          setSelectedPreWorkouts(planData.selectedPreWorkouts || []);
-          setSelectedPostWorkouts(planData.selectedPostWorkouts || []);
-
-          if (planData.athleteId) {
-            const athleteDoc = await getDoc(doc(firestore, 'userProfiles', planData.athleteId));
-            if (athleteDoc.exists()) {
-              const aData = athleteDoc.data();
-              const fullAthlete = { id: athleteDoc.id, ...aData } as UserProfile;
-              setSelectedAthlete(fullAthlete);
-              setAthleteSearch(`${fullAthlete.firstName} ${fullAthlete.lastName || ''}`);
-            }
+          // Reconstruct phases (tabs)
+          let loadedPhases: any[] = planData.phases || [];
+          if (loadedPhases.length === 0) {
+            loadedPhases = [{
+              name: 'A1',
+              isEnabled: true,
+              objectiveName: planData.objectiveName || '',
+              methodName: planData.methodName || '',
+              rhythmName: planData.rhythmName || '',
+              phaseName: planData.phaseName || '',
+              loadPercentage: planData.loadPercentage ?? 50,
+              restSeconds: planData.restSeconds ?? 60,
+              durationWeeks: planData.durationWeeks ?? 4,
+              weeklyFrequency: planData.weeklyFrequency ?? 3,
+              selectedEquipments: planData.selectedEquipments || [],
+              selectedPreWorkouts: planData.selectedPreWorkouts || [],
+              selectedPostWorkouts: planData.selectedPostWorkouts || []
+            }];
           }
 
+          // Fetch workout days subcollection
           const daysSnap = await getDocs(collection(firestore, 'trainingPlans', editId, 'workoutDays'));
-          if (!daysSnap.empty) {
-            const firstDay = daysSnap.docs[0].data();
-            if (firstDay.exercises && firstDay.exercises.length > 0) {
-              setWorkoutExercises(firstDay.exercises.map((ex: any, idx: number) => ({
+          const rawDays = daysSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+          const parsedTabs: WorkoutTab[] = loadedPhases.map((phase: any) => {
+            const phaseDays = rawDays.filter((d: any) => {
+              const pName = d.phaseName || 'A1';
+              return pName.toLowerCase() === phase.name.toLowerCase();
+            });
+
+            // Sort days alphabetically or by custom naming
+            phaseDays.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
+
+            let mappedDays: WorkoutDay[] = phaseDays.map((d: any) => ({
+              name: d.name || 'Treino A',
+              exercises: (d.exercises || []).map((ex: any, idx: number) => ({
                 id: ex.id || `ex-${idx}`,
                 name: ex.exerciseName || ex.name || '',
                 sets: ex.sets || 3,
                 reps: ex.reps || '10',
                 load: ex.carga || '',
                 videoUrl: ex.videoUrl || ''
-              })));
+              }))
+            }));
+
+            if (mappedDays.length === 0) {
+              mappedDays = [
+                {
+                  name: 'Treino A',
+                  exercises: [{ id: 'ex-1', name: '', sets: 3, reps: '10', load: '' }]
+                }
+              ];
+            }
+
+            return {
+              name: phase.name,
+              isEnabled: phase.isEnabled !== false,
+              objectiveName: phase.objectiveName || '',
+              methodName: phase.methodName || '',
+              rhythmName: phase.rhythmName || '',
+              phaseName: phase.phaseName || '',
+              loadPercentage: phase.loadPercentage ?? 50,
+              restSeconds: phase.restSeconds ?? 60,
+              durationWeeks: phase.durationWeeks ?? 4,
+              weeklyFrequency: phase.weeklyFrequency ?? 3,
+              selectedEquipments: phase.selectedEquipments || [],
+              selectedPreWorkouts: phase.selectedPreWorkouts || [],
+              selectedPostWorkouts: phase.selectedPostWorkouts || [],
+              days: mappedDays
+            };
+          });
+
+          setTabs(parsedTabs);
+          setActiveTabIdx(0);
+          setActiveDayIdx(0);
+
+          if (parsedTabs.length > 0) {
+            const firstTab = parsedTabs[0];
+            setSelectedObjective(firstTab.objectiveName);
+            setObjectiveSearch(firstTab.objectiveName);
+            setSelectedMethod(firstTab.methodName);
+            setMethodSearch(firstTab.methodName);
+            setSelectedRhythm(firstTab.rhythmName);
+            setRhythmSearch(firstTab.rhythmName);
+            setSelectedPhase(firstTab.phaseName);
+            setPhaseSearch(firstTab.phaseName);
+            setLoadPercentage(firstTab.loadPercentage);
+            setRestSeconds(firstTab.restSeconds);
+            setDurationWeeks(firstTab.durationWeeks);
+            setWeeklyFrequency(firstTab.weeklyFrequency);
+            setSelectedEquipments(firstTab.selectedEquipments);
+            setSelectedPreWorkouts(firstTab.selectedPreWorkouts);
+            setSelectedPostWorkouts(firstTab.selectedPostWorkouts);
+            
+            if (firstTab.days.length > 0) {
+              setWorkoutExercises(firstTab.days[0].exercises);
             }
           }
+          setExpirationDate(planData.expirationDate || '');
         }
       } catch (error) {
         console.error('Error loading plan for edit:', error);
@@ -325,30 +618,53 @@ function PersonalizedWorkoutBuilderInner() {
       }
     }
 
-    if (workoutExercises.some(ex => !ex.name.trim())) {
-      toast({
-        variant: 'destructive',
-        title: 'Exercício em branco',
-        description: 'Por favor, preencha o nome de todos os exercícios adicionados.',
-      });
-      return;
-    }
-
     if (!firestore || !user) return;
 
     setSaving(true);
+
     try {
+      // 1. Build the final tabs list synchronously by saving current active form states
+      const finalTabs = JSON.parse(JSON.stringify(tabs));
+      const activeTab = finalTabs[activeTabIdx];
+      if (activeTab) {
+        activeTab.objectiveName = selectedObjective;
+        activeTab.methodName = selectedMethod;
+        activeTab.rhythmName = selectedRhythm;
+        activeTab.phaseName = selectedPhase;
+        activeTab.loadPercentage = Number(loadPercentage);
+        activeTab.restSeconds = Number(restSeconds);
+        activeTab.durationWeeks = Number(durationWeeks);
+        activeTab.weeklyFrequency = Number(weeklyFrequency);
+        activeTab.selectedEquipments = selectedEquipments;
+        activeTab.selectedPreWorkouts = selectedPreWorkouts;
+        activeTab.selectedPostWorkouts = selectedPostWorkouts;
+
+        if (activeTab.days && activeTab.days[activeDayIdx]) {
+          activeTab.days[activeDayIdx].exercises = workoutExercises;
+        }
+      }
+
+      // 2. Validate all exercises in all tabs
+      for (const tab of finalTabs) {
+        for (const day of tab.days) {
+          if (day.exercises.some(ex => !ex.name.trim())) {
+            toast({
+              variant: 'destructive',
+              title: 'Exercício em branco',
+              description: `Por favor, preencha o nome de todos os exercícios na aba "${tab.name}" -> "${day.name}".`,
+            });
+            setSaving(false);
+            return;
+          }
+        }
+      }
+
       const batch = writeBatch(firestore);
       const planRef = editId ? doc(firestore, 'trainingPlans', editId) : doc(collection(firestore, 'trainingPlans'));
       const athleteName = selectedAthlete ? `${selectedAthlete.firstName} ${selectedAthlete.lastName || ''}` : '';
 
-      // 1. Create main training plan metadata
-      const planData: any = {
-        name: isPreConfigured ? planName.trim() : `Plano Personalizado - ${athleteName}`,
-        description: `Treino focado em ${selectedObjective || 'Geral'}. Periodização: ${selectedPhase || 'Fase Geral'}. Método: ${selectedMethod || 'Padrão'}.`,
-        isPersonalized: !isPreConfigured,
-        isPreConfigured: isPreConfigured,
-        gender: gender,
+      // 3. Serialize root parameters (using the first tab as default for backwards compatibility)
+      const primaryTab = finalTabs[0] || activeTab || {
         objectiveName: selectedObjective,
         methodName: selectedMethod,
         rhythmName: selectedRhythm,
@@ -357,12 +673,47 @@ function PersonalizedWorkoutBuilderInner() {
         restSeconds: Number(restSeconds),
         durationWeeks: Number(durationWeeks),
         weeklyFrequency: Number(weeklyFrequency),
-        durationFrequency: `${durationWeeks} semanas, ${weeklyFrequency}x por semana`,
-        expirationDate: expirationDate,
         selectedEquipments,
         selectedPreWorkouts,
         selectedPostWorkouts,
+      };
+
+      const planData: any = {
+        name: isPreConfigured ? planName.trim() : `Plano Personalizado - ${athleteName}`,
+        description: `Treino focado em ${primaryTab.objectiveName || 'Geral'}. Periodização: ${primaryTab.phaseName || 'Fase Geral'}. Método: ${primaryTab.methodName || 'Padrão'}.`,
+        isPersonalized: !isPreConfigured,
+        isPreConfigured: isPreConfigured,
+        gender: gender,
+        objectiveName: primaryTab.objectiveName,
+        methodName: primaryTab.methodName,
+        rhythmName: primaryTab.rhythmName,
+        phaseName: primaryTab.phaseName,
+        loadPercentage: Number(primaryTab.loadPercentage),
+        restSeconds: Number(primaryTab.restSeconds),
+        durationWeeks: Number(primaryTab.durationWeeks),
+        weeklyFrequency: Number(primaryTab.weeklyFrequency),
+        durationFrequency: `${primaryTab.durationWeeks} semanas, ${primaryTab.weeklyFrequency}x por semana`,
+        expirationDate: expirationDate,
+        selectedEquipments: primaryTab.selectedEquipments,
+        selectedPreWorkouts: primaryTab.selectedPreWorkouts,
+        selectedPostWorkouts: primaryTab.selectedPostWorkouts,
         updatedAt: serverTimestamp(),
+        // Save full phases configuration list
+        phases: finalTabs.map((t: any) => ({
+          name: t.name,
+          isEnabled: t.isEnabled !== false,
+          objectiveName: t.objectiveName || '',
+          methodName: t.methodName || '',
+          rhythmName: t.rhythmName || '',
+          phaseName: t.phaseName || '',
+          loadPercentage: Number(t.loadPercentage),
+          restSeconds: Number(t.restSeconds),
+          durationWeeks: Number(t.durationWeeks),
+          weeklyFrequency: Number(t.weeklyFrequency),
+          selectedEquipments: t.selectedEquipments || [],
+          selectedPreWorkouts: t.selectedPreWorkouts || [],
+          selectedPostWorkouts: t.selectedPostWorkouts || []
+        }))
       };
 
       if (isPreConfigured) {
@@ -388,38 +739,54 @@ function PersonalizedWorkoutBuilderInner() {
 
       batch.set(planRef, planData, { merge: true });
 
-      // 2. Determine dayRef
-      let dayRef;
+      // 4. Clean up existing workout days if editing
+      const targetPlanId = editId ? editId : planRef.id;
       if (editId) {
         const { getDocs } = await import('firebase/firestore');
         const daysSnap = await getDocs(collection(firestore, 'trainingPlans', editId, 'workoutDays'));
-        if (!daysSnap.empty) {
-          dayRef = doc(firestore, 'trainingPlans', editId, 'workoutDays', daysSnap.docs[0].id);
-        } else {
-          dayRef = doc(collection(firestore, `trainingPlans/${editId}/workoutDays`));
+        for (const docSnap of daysSnap.docs) {
+          batch.delete(docSnap.ref);
         }
-      } else {
-        dayRef = doc(collection(firestore, `trainingPlans/${planRef.id}/workoutDays`));
       }
 
-      const dayData = {
-        id: dayRef.id,
-        dayOrder: 1,
-        name: 'Treino A',
-        trainingPlanOwnerId: user.uid,
-        trainingPlanAssignedToAthleteIds: isPreConfigured ? assignedAthleteIds : [selectedAthlete!.id],
-        exercises: workoutExercises.map((ex, index) => ({
-          id: ex.id || `exercise-${index}`,
-          exerciseName: ex.name,
-          sets: ex.sets,
-          reps: ex.reps,
-          carga: ex.load,
-          videoUrl: ex.videoUrl || '',
-          isCompleted: false
-        }))
-      };
+      // 5. Commit all workout days across all tabs
+      for (const tab of finalTabs) {
+        for (let dayIdx = 0; dayIdx < tab.days.length; dayIdx++) {
+          const day = tab.days[dayIdx];
+          const dayDocId = `${tab.name.replace(/\s+/g, '_')}_Day${dayIdx + 1}`.toLowerCase();
+          const dayRef = doc(firestore, 'trainingPlans', targetPlanId, 'workoutDays', dayDocId);
 
-      batch.set(dayRef, dayData, { merge: true });
+          const dayData = {
+            id: dayDocId,
+            phaseName: tab.name,
+            dayOrder: dayIdx + 1,
+            name: day.name,
+            trainingPlanOwnerId: user.uid,
+            trainingPlanAssignedToAthleteIds: isPreConfigured ? assignedAthleteIds : [selectedAthlete!.id],
+            objectiveName: tab.objectiveName,
+            methodName: tab.methodName,
+            rhythmName: tab.rhythmName,
+            loadPercentage: Number(tab.loadPercentage),
+            restSeconds: Number(tab.restSeconds),
+            durationWeeks: Number(tab.durationWeeks),
+            weeklyFrequency: Number(tab.weeklyFrequency),
+            selectedEquipments: tab.selectedEquipments,
+            selectedPreWorkouts: tab.selectedPreWorkouts,
+            selectedPostWorkouts: tab.selectedPostWorkouts,
+            exercises: day.exercises.map((ex: any, idx: number) => ({
+              id: ex.id || `exercise-${idx}`,
+              exerciseName: ex.name,
+              sets: Number(ex.sets),
+              reps: ex.reps,
+              carga: ex.load,
+              videoUrl: ex.videoUrl || '',
+              isCompleted: false
+            }))
+          };
+
+          batch.set(dayRef, dayData);
+        }
+      }
 
       // Commit transaction
       await batch.commit();
@@ -525,6 +892,69 @@ function PersonalizedWorkoutBuilderInner() {
           </Button>
         </div>
       </div>
+
+      {/* Fases do Treino (Periodização) */}
+      <Card className="border-primary/10 bg-card/45 backdrop-blur-sm relative z-20">
+        <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4 text-primary" /> Fases de Periodização (Abas)
+            </h3>
+            <p className="text-xs text-muted-foreground">Crie e configure as fases que o aluno irá progredir ao longo do tempo.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {tabs.map((tab, idx) => {
+              const isActive = idx === activeTabIdx;
+              return (
+                <div key={idx} className="flex items-center bg-background/35 rounded-xl border border-primary/5 p-1 gap-1">
+                  <Button
+                    type="button"
+                    variant={isActive ? "default" : "ghost"}
+                    className={`h-8 px-3 rounded-lg flex items-center gap-2 ${
+                      isActive ? "shadow-sm bg-primary text-primary-foreground font-bold" : "text-muted-foreground hover:bg-primary/5"
+                    }`}
+                    onClick={() => switchTabOrDay(idx, 0)}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${tab.isEnabled ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/35'}`} />
+                    <span className="text-xs">{tab.name}</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-6 text-muted-foreground/75 hover:text-foreground"
+                    onClick={() => renameTab(idx)}
+                    title="Renomear"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                  </Button>
+                  {tabs.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-6 text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
+                      onClick={() => deleteTab(idx)}
+                      title="Excluir"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addTab}
+              className="h-9 border-dashed border-primary/30 hover:border-primary text-primary flex items-center gap-1.5 text-xs font-bold"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Adicionar Fase
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left Column: Configs */}
@@ -695,6 +1125,34 @@ function PersonalizedWorkoutBuilderInner() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
+              {/* Status da Aba Ativa */}
+              <div className="flex items-center justify-between p-3 bg-secondary/35 rounded-xl border border-border/40 mb-2">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-bold text-foreground">Aba {tabs[activeTabIdx]?.name} Ativa</Label>
+                  <p className="text-[10px] text-muted-foreground">O aluno vê esta aba se habilitada.</p>
+                </div>
+                <Button
+                  type="button"
+                  variant={tabs[activeTabIdx]?.isEnabled ? "default" : "outline"}
+                  onClick={() => {
+                    setTabs(prev => {
+                      const updated = [...prev];
+                      if (updated[activeTabIdx]) {
+                        updated[activeTabIdx].isEnabled = !updated[activeTabIdx].isEnabled;
+                      }
+                      return updated;
+                    });
+                  }}
+                  className={`h-8 text-xs font-bold ${
+                    tabs[activeTabIdx]?.isEnabled 
+                      ? "bg-green-600 hover:bg-green-700 text-white shadow-sm" 
+                      : "text-muted-foreground hover:bg-primary/5"
+                  }`}
+                >
+                  {tabs[activeTabIdx]?.isEnabled ? "Habilitada" : "Desabilitada"}
+                </Button>
+              </div>
+
               {/* Objectives */}
               <div className="space-y-1.5">
                 <Label htmlFor="objective">Objetivo</Label>
@@ -842,6 +1300,55 @@ function PersonalizedWorkoutBuilderInner() {
               </Button>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
+              {/* Abas de Fichas Diárias (Treino A, B, C, D) */}
+              <div className="flex items-center justify-between border-b pb-3 border-border/40 gap-4 mb-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {tabs[activeTabIdx]?.days.map((day, idx) => {
+                    const isDayActive = idx === activeDayIdx;
+                    return (
+                      <div key={idx} className="flex items-center bg-secondary/35 rounded-lg border border-border/40 p-0.5 gap-0.5">
+                        <Button
+                          type="button"
+                          variant={isDayActive ? "default" : "ghost"}
+                          className={`h-7 px-2.5 rounded text-xs font-bold ${
+                            isDayActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-primary/5"
+                          }`}
+                          onClick={() => switchTabOrDay(activeTabIdx, idx)}
+                        >
+                          {day.name}
+                        </Button>
+                        {tabs[activeTabIdx].days.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-5 text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
+                            onClick={() => removeWorkoutDayFromActiveTab(idx)}
+                            title="Remover Ficha"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {tabs[activeTabIdx]?.days.length < 4 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addWorkoutDayToActiveTab}
+                      className="h-8 border-dashed border-primary/25 hover:border-primary text-primary flex items-center gap-1 text-xs font-bold"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Nova Ficha (Treino)
+                    </Button>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground hidden sm:block">
+                  Aba ativa: <span className="font-bold text-foreground">{tabs[activeTabIdx]?.name}</span>
+                </div>
+              </div>
+
               {workoutExercises.map((ex, index) => (
                 <div key={ex.id} className="p-4 bg-background/50 rounded-xl border border-primary/10 space-y-4 relative group transition-all duration-300 hover:border-primary/30 focus-within:z-30 z-10">
                   

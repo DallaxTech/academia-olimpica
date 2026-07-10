@@ -54,15 +54,45 @@ export default function AlunoDashboard() {
 
   const { data: sessions } = useCollection<any>(sessionsQuery);
 
-  // Calculate statistics
-  const durationWeeks = activePlan?.durationWeeks || 4;
-  const weeklyFrequency = activePlan?.weeklyFrequency || 3;
+  const [selectedPhaseName, setSelectedPhaseName] = useState('');
+
+  useEffect(() => {
+    if (activePlan) {
+      const enabledPhases = (activePlan.phases || []).filter((p: any) => p.isEnabled !== false);
+      if (enabledPhases.length > 0) {
+        setSelectedPhaseName(enabledPhases[0].name);
+      } else if (activePlan.phases && activePlan.phases.length > 0) {
+        setSelectedPhaseName(activePlan.phases[0].name);
+      } else {
+        setSelectedPhaseName('A1');
+      }
+    }
+  }, [activePlan]);
+
+  const activePhase = useMemo(() => {
+    if (!activePlan) return null;
+    if (!activePlan.phases || activePlan.phases.length === 0) return activePlan;
+    return activePlan.phases.find((p: any) => p.name.toLowerCase() === selectedPhaseName.toLowerCase()) || activePlan.phases[0] || activePlan;
+  }, [activePlan, selectedPhaseName]);
+
+  const phaseSessions = useMemo(() => {
+    if (!sessions) return [];
+    if (!activePlan || !activePlan.phases || activePlan.phases.length === 0) return sessions;
+    return sessions.filter((s: any) => {
+      const sPhase = s.phaseName || 'A1';
+      return sPhase.toLowerCase() === selectedPhaseName.toLowerCase();
+    });
+  }, [sessions, activePlan, selectedPhaseName]);
+
+  // Calculate statistics for the active phase
+  const durationWeeks = activePhase?.durationWeeks || 4;
+  const weeklyFrequency = activePhase?.weeklyFrequency || 3;
   const totalExpected = durationWeeks * weeklyFrequency;
-  const completedCount = sessions?.length || 0;
+  const completedCount = phaseSessions.length;
   const progressPercent = totalExpected > 0 ? Math.min(100, Math.round((completedCount / totalExpected) * 100)) : 0;
   const isPlanCompleted = completedCount >= totalExpected;
 
-  // Check if completed a session today
+  // Check if completed a session today (global restriction)
   const completedToday = useMemo(() => {
     if (!sessions || sessions.length === 0) return false;
     const todayStr = new Date().toLocaleDateString('pt-BR');
@@ -73,8 +103,8 @@ export default function AlunoDashboard() {
     });
   }, [sessions]);
 
-  // Streak/Progress stats (dynamic streak)
-  const streak = completedCount > 0 ? Math.min(7, completedCount) : 0;
+  // Streak based on overall completed sessions
+  const streak = sessions?.length ? Math.min(7, sessions.length) : 0;
 
   return (
     <div className="w-full max-w-md mx-auto p-4 space-y-6 pt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -122,12 +152,37 @@ export default function AlunoDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Phase Switcher for Student */}
+              {activePlan.phases && activePlan.phases.length > 0 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-border/40 mb-1 scrollbar-none">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1 whitespace-nowrap">Fases:</span>
+                  {activePlan.phases
+                    .filter((p: any) => p.isEnabled !== false)
+                    .map((phase: any) => {
+                      const isActive = phase.name.toLowerCase() === selectedPhaseName.toLowerCase();
+                      return (
+                        <Button
+                          key={phase.name}
+                          type="button"
+                          variant={isActive ? "default" : "outline"}
+                          className={`h-7 px-3 text-[11px] font-bold rounded-lg ${
+                            isActive ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground bg-background/50 hover:bg-primary/5"
+                          }`}
+                          onClick={() => setSelectedPhaseName(phase.name)}
+                        >
+                          {phase.name}
+                        </Button>
+                      );
+                    })}
+                </div>
+              )}
+
               {isPlanCompleted ? (
                 <div className="bg-green-500/10 border border-green-500/25 p-5 rounded-xl text-center space-y-3">
                   <Trophy className="w-12 h-12 text-green-500 mx-auto animate-bounce" />
                   <h3 className="font-bold text-lg text-green-500">Parabéns! Você concluiu este plano! 🏆</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    Você realizou com sucesso os {totalExpected} treinos planejados. Fale com seu professor para prescrever a sua próxima ficha!
+                    Você realizou com sucesso os {totalExpected} treinos planejados para a fase {selectedPhaseName}. Fale com seu professor para prescrever a sua próxima ficha!
                   </p>
                 </div>
               ) : (
@@ -143,7 +198,7 @@ export default function AlunoDashboard() {
                   {/* Progress Bar */}
                   <div className="space-y-1.5 pt-2 border-t border-border/40">
                     <div className="flex justify-between text-xs font-bold text-muted-foreground">
-                      <span>Progresso da Ficha</span>
+                      <span>Progresso da Ficha ({selectedPhaseName})</span>
                       <span>{completedCount} de {totalExpected} treinos ({progressPercent}%)</span>
                     </div>
                     <Progress value={progressPercent} className="h-2 bg-secondary" />
@@ -157,7 +212,7 @@ export default function AlunoDashboard() {
               <Button 
                 className="w-full text-lg h-14 font-bold transition-transform active:scale-95 bg-secondary text-foreground hover:bg-secondary/85" 
                 size="lg"
-                onClick={() => router.push(`/aluno/treino/${activePlan.id}`)}
+                onClick={() => router.push(`/aluno/treino/${activePlan.id}?phase=${selectedPhaseName}`)}
               >
                 Refazer Treino Extra
               </Button>
@@ -170,7 +225,7 @@ export default function AlunoDashboard() {
               <Button 
                 className="w-full text-lg h-14 font-bold shadow-lg shadow-primary/20 transition-transform active:scale-95" 
                 size="lg"
-                onClick={() => router.push(`/aluno/treino/${activePlan.id}`)}
+                onClick={() => router.push(`/aluno/treino/${activePlan.id}?phase=${selectedPhaseName}`)}
               >
                 Começar Treino
               </Button>

@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState, useMemo } from 'react';
+import { use, useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { doc, collection, query, orderBy } from 'firebase/firestore';
 import { PageHeader } from '@/components/page-header';
@@ -95,6 +95,23 @@ export default function WorkoutDetailsPage({ params }: { params: Promise<{ id: s
 
   const isLoading = isPlanLoading || isDaysLoading;
 
+  const [selectedPhaseName, setSelectedPhaseName] = useState('');
+
+  useEffect(() => {
+    if (plan && plan.phases && plan.phases.length > 0) {
+      setSelectedPhaseName(plan.phases[0].name);
+    }
+  }, [plan]);
+
+  const filteredDays = useMemo(() => {
+    if (!days) return [];
+    if (!selectedPhaseName) return days;
+    return days.filter((d: any) => {
+      const pName = d.phaseName || 'A1';
+      return pName.toLowerCase() === selectedPhaseName.toLowerCase();
+    });
+  }, [days, selectedPhaseName]);
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {isLoading ? (
@@ -140,53 +157,83 @@ export default function WorkoutDetailsPage({ params }: { params: Promise<{ id: s
             </div>
           </PageHeader>
 
+          {/* Phase Switcher Tabs */}
+          {plan.phases && plan.phases.length > 0 && (
+            <div className="flex items-center gap-2 bg-background/50 p-3 rounded-2xl border border-primary/10 backdrop-blur-sm overflow-x-auto">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground mr-2 whitespace-nowrap">Fases:</span>
+              <div className="flex gap-2">
+                {plan.phases.map((phase: any) => {
+                  const isActive = phase.name === selectedPhaseName;
+                  return (
+                    <Button
+                      key={phase.name}
+                      variant={isActive ? "default" : "outline"}
+                      onClick={() => setSelectedPhaseName(phase.name)}
+                      className={`h-8 px-3 text-xs font-bold flex items-center gap-1.5 ${
+                        isActive ? "shadow-sm bg-primary text-primary-foreground font-bold" : "bg-card/50"
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${phase.isEnabled ? 'bg-green-500' : 'bg-muted-foreground/35'}`} />
+                      {phase.name}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-             {(plan.isPersonalized || plan.isPreConfigured) && (
-               <Card className="lg:col-span-3 border border-primary/20 bg-primary/5 p-6 rounded-2xl flex flex-wrap gap-6 justify-between items-center backdrop-blur-sm shadow-sm">
-                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-4 w-full">
-                   <div>
-                     <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Objetivo</span>
-                     <span className="font-bold text-sm text-primary">{plan.objectiveName || 'Geral'}</span>
+             {(() => {
+               const activePhase = plan.phases?.find((p: any) => p.name === selectedPhaseName) || plan;
+               return (
+                 <Card className="lg:col-span-3 border border-primary/20 bg-primary/5 p-6 rounded-2xl flex flex-wrap gap-6 justify-between items-center backdrop-blur-sm shadow-sm">
+                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-4 w-full">
+                     <div>
+                       <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Objetivo</span>
+                       <span className="font-bold text-sm text-primary">{activePhase.objectiveName || 'Geral'}</span>
+                     </div>
+                     <div>
+                       <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Método</span>
+                       <span className="font-bold text-sm text-primary">{activePhase.methodName || 'Padrão'}</span>
+                     </div>
+                     <div>
+                       <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Ritmo</span>
+                       <span className="font-bold text-sm text-primary">{activePhase.rhythmName || 'N/A'}</span>
+                     </div>
+                     <div>
+                       <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Fase</span>
+                       <span className="font-bold text-sm text-primary">{activePhase.phaseName || activePhase.name || 'Geral'}</span>
+                     </div>
+                     <div>
+                       <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Carga</span>
+                       <span className="font-mono font-bold text-sm text-primary">{activePhase.loadPercentage}%</span>
+                     </div>
+                     <div>
+                       <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Intervalo</span>
+                       <span className="font-mono font-bold text-sm text-primary">{activePhase.restSeconds}s</span>
+                     </div>
+                     <div>
+                       <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Duração</span>
+                       <span className="font-bold text-sm text-primary text-wrap">
+                         {activePhase.durationWeeks ? `${activePhase.durationWeeks} semanas` : (activePhase.durationFrequency || 'N/A')}
+                       </span>
+                     </div>
+                     <div>
+                       <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Vencimento</span>
+                       <span className="font-mono font-bold text-sm text-primary">
+                         {plan.expirationDate ? new Date(plan.expirationDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}
+                       </span>
+                     </div>
+                     <div>
+                       <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Professor</span>
+                       <span className="font-bold text-sm text-primary truncate block" title={plan.createdByUserName}>
+                         {plan.createdByUserName || 'N/A'}
+                       </span>
+                     </div>
                    </div>
-                   <div>
-                     <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Método</span>
-                     <span className="font-bold text-sm text-primary">{plan.methodName || 'Padrão'}</span>
-                   </div>
-                   <div>
-                     <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Ritmo</span>
-                     <span className="font-bold text-sm text-primary">{plan.rhythmName || 'N/A'}</span>
-                   </div>
-                   <div>
-                     <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Fase</span>
-                     <span className="font-bold text-sm text-primary">{plan.phaseName || 'Geral'}</span>
-                   </div>
-                   <div>
-                     <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Carga</span>
-                     <span className="font-mono font-bold text-sm text-primary">{plan.loadPercentage}%</span>
-                   </div>
-                   <div>
-                     <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Intervalo</span>
-                     <span className="font-mono font-bold text-sm text-primary">{plan.restSeconds}s</span>
-                   </div>
-                   <div>
-                     <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Duração</span>
-                     <span className="font-bold text-sm text-primary text-wrap">{plan.durationFrequency || 'N/A'}</span>
-                   </div>
-                   <div>
-                     <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Vencimento</span>
-                     <span className="font-mono font-bold text-sm text-primary">
-                       {plan.expirationDate ? new Date(plan.expirationDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}
-                     </span>
-                   </div>
-                   <div>
-                     <span className="text-[10px] uppercase text-muted-foreground block font-bold tracking-wider">Professor</span>
-                     <span className="font-bold text-sm text-primary truncate block" title={plan.createdByUserName}>
-                       {plan.createdByUserName || 'N/A'}
-                     </span>
-                   </div>
-                 </div>
-               </Card>
-             )}
+                 </Card>
+               );
+             })()}
 
             {/* Workout Days */}
             <div className="lg:col-span-2 space-y-4">
@@ -195,9 +242,9 @@ export default function WorkoutDetailsPage({ params }: { params: Promise<{ id: s
                 Estrutura do Treino
               </h2>
               
-              {days && days.length > 0 ? (
+              {filteredDays && filteredDays.length > 0 ? (
                 <div className="grid gap-6">
-                  {days.map((day: any) => (
+                  {filteredDays.map((day: any) => (
                     <Card key={day.id} className="bg-card/50 overflow-hidden border-primary/10">
                       <CardHeader className="bg-primary/5 py-4">
                         <CardTitle className="text-lg flex items-center justify-between">
