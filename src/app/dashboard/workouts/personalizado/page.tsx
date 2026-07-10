@@ -31,7 +31,8 @@ import {
   Coffee,
   Check,
   Flame,
-  RefreshCw
+  RefreshCw,
+  GripVertical
 } from 'lucide-react';
 import { Role, UserProfile } from '@/lib/types';
 
@@ -169,6 +170,7 @@ function PersonalizedWorkoutBuilderInner() {
   });
   const [activeTabIdx, setActiveTabIdx] = useState(0);
   const [activeDayIdx, setActiveDayIdx] = useState(0);
+  const [isTabDraggable, setIsTabDraggable] = useState(false);
 
   const saveActiveToTab = (tabIdx: number, dayIdx: number) => {
     setTabs(prev => {
@@ -959,17 +961,25 @@ function PersonalizedWorkoutBuilderInner() {
               return (
                 <div 
                   key={idx} 
-                  draggable={true}
+                  draggable={isTabDraggable}
                   onDragStart={(e) => handleDragStart(e, idx)}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => handleDrop(e, idx)}
-                  className="flex items-center bg-background/35 rounded-xl border border-primary/5 p-1 gap-1 cursor-grab active:cursor-grabbing hover:border-primary/20 transition-all shadow-sm"
-                  title="Segure e arraste para mudar a ordem das fases"
+                  className="flex items-center bg-background/35 rounded-xl border border-primary/5 p-1 gap-1 shadow-sm transition-all"
                 >
+                  <div
+                    className="px-1.5 cursor-grab active:cursor-grabbing text-muted-foreground/45 hover:text-foreground flex items-center justify-center"
+                    onMouseDown={() => setIsTabDraggable(true)}
+                    onMouseUp={() => setIsTabDraggable(false)}
+                    onMouseLeave={() => setIsTabDraggable(false)}
+                    title="Arraste para mudar a ordem das fases"
+                  >
+                    <GripVertical className="w-3.5 h-3.5" />
+                  </div>
                   <Button
                     type="button"
                     variant={isActive ? "default" : "ghost"}
-                    className={`h-8 px-3 rounded-lg flex items-center gap-2 ${
+                    className={`h-8 px-2 rounded-lg flex items-center gap-1.5 ${
                       isActive ? "shadow-sm bg-primary text-primary-foreground font-bold" : "text-muted-foreground hover:bg-primary/5"
                     }`}
                     onClick={() => switchTabOrDay(idx, 0)}
