@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { collection } from 'firebase/firestore';
 import Link from 'next/link';
 import { PageHeader } from '@/components/page-header';
@@ -18,8 +19,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User as UserIcon } from 'lucide-react';
+import { User as UserIcon, Search } from 'lucide-react';
 import { useLayout } from '@/components/layout-provider';
+import { Input } from '@/components/ui/input';
 
 export default function UsersPage() {
   const firestore = useFirestore();
@@ -31,6 +33,14 @@ export default function UsersPage() {
   }, [firestore]);
 
   const { data: users, isLoading } = useCollection<UserProfile>(usersCollectionRef);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredUsers = users?.filter(u => {
+    const fullName = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
+    const email = (u.email || '').toLowerCase();
+    const term = searchTerm.toLowerCase();
+    return fullName.includes(term) || email.includes(term);
+  }) || [];
 
   const getRoleVariant = (roleId: Role) => {
     switch (roleId) {
@@ -53,6 +63,16 @@ export default function UsersPage() {
           <Link href="/dashboard/users/novo">Adicionar Usuário</Link>
         </Button>
       </PageHeader>
+      
+      <div className="relative max-w-sm mb-6 mt-2">
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Pesquisar usuários por nome ou e-mail..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-9 bg-background/50 border-primary/10 focus-visible:ring-primary"
+        />
+      </div>
       
       {layout === 'list' ? (
         <Card>
@@ -77,8 +97,8 @@ export default function UsersPage() {
                     <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                   </TableRow>
                 ))
-              ) : users && users.length > 0 ? (
-                users.map((user) => (
+              ) : filteredUsers && filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{`${user.firstName} ${user.lastName}`}</TableCell>
                     <TableCell>{user.email}</TableCell>
@@ -123,8 +143,8 @@ export default function UsersPage() {
                 </CardContent>
               </Card>
             ))
-          ) : users && users.length > 0 ? (
-            users.map((user) => (
+          ) : filteredUsers && filteredUsers.length > 0 ? (
+            filteredUsers.map((user) => (
               <Card key={user.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
