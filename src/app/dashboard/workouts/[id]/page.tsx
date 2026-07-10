@@ -2,7 +2,7 @@
 
 import { use, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { doc, collection, updateDoc, arrayUnion, arrayRemove, query, orderBy } from 'firebase/firestore';
+import { doc, collection, query, orderBy } from 'firebase/firestore';
 import { PageHeader } from '@/components/page-header';
 import { useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -126,7 +126,7 @@ export default function WorkoutDetailsPage({ params }: { params: Promise<{ id: s
                </Badge>
                 <Button 
                   onClick={() => {
-                    if (plan.isPersonalized) {
+                    if (plan.isPersonalized || plan.isPreConfigured) {
                       router.push(`/dashboard/workouts/personalizado?id=${id}`);
                     } else {
                       router.push(`/dashboard/workouts/${id}/editar`);
@@ -141,7 +141,7 @@ export default function WorkoutDetailsPage({ params }: { params: Promise<{ id: s
           </PageHeader>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-             {plan.isPersonalized && (
+             {(plan.isPersonalized || plan.isPreConfigured) && (
                <Card className="lg:col-span-3 border border-primary/20 bg-primary/5 p-6 rounded-2xl flex flex-wrap gap-6 justify-between items-center backdrop-blur-sm shadow-sm">
                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-4 w-full">
                    <div>
@@ -274,8 +274,8 @@ export default function WorkoutDetailsPage({ params }: { params: Promise<{ id: s
                 <PlanAssignmentCard planId={id} assignedAthleteIds={plan.assignedToAthleteIds || []} />
               )}
 
-              {/* If personalized, show equipment, pre and post workouts */}
-              {plan.isPersonalized && (
+              {/* If personalized or pre-configured, show equipment, pre and post workouts */}
+              {(plan.isPersonalized || plan.isPreConfigured) && (
                 <Card className="bg-card/40 border-primary/10 p-5 space-y-4">
                   <CardHeader className="p-0">
                     <CardTitle className="text-sm font-bold flex items-center gap-2">
@@ -381,10 +381,24 @@ function PlanAssignmentCard({ planId, assignedAthleteIds }: { planId: string; as
     if (!firestore || !selectedAthleteId) return;
     setIsLinking(true);
     try {
+      const { writeBatch, getDocs, collection, arrayUnion } = await import('firebase/firestore');
+      const batch = writeBatch(firestore);
+      
       const planRef = doc(firestore, 'trainingPlans', planId);
-      await updateDoc(planRef, {
+      batch.update(planRef, {
         assignedToAthleteIds: arrayUnion(selectedAthleteId)
       });
+      
+      // Sync subcollection days for Security Rules
+      const daysSnap = await getDocs(collection(firestore, 'trainingPlans', planId, 'workoutDays'));
+      daysSnap.forEach((dayDoc) => {
+        batch.update(dayDoc.ref, {
+          trainingPlanAssignedToAthleteIds: arrayUnion(selectedAthleteId)
+        });
+      });
+      
+      await batch.commit();
+
       toast({
         title: 'Ficha Vinculada!',
         description: `O treino foi atribuído com sucesso para ${selectedAthlete?.firstName || 'o aluno'}.`,
@@ -404,10 +418,24 @@ function PlanAssignmentCard({ planId, assignedAthleteIds }: { planId: string; as
   const handleUnlinkPlan = async (athleteId: string, athleteName: string) => {
     if (!firestore) return;
     try {
+      const { writeBatch, getDocs, collection, arrayRemove } = await import('firebase/firestore');
+      const batch = writeBatch(firestore);
+      
       const planRef = doc(firestore, 'trainingPlans', planId);
-      await updateDoc(planRef, {
+      batch.update(planRef, {
         assignedToAthleteIds: arrayRemove(athleteId)
       });
+      
+      // Sync subcollection days for Security Rules
+      const daysSnap = await getDocs(collection(firestore, 'trainingPlans', planId, 'workoutDays'));
+      daysSnap.forEach((dayDoc) => {
+        batch.update(dayDoc.ref, {
+          trainingPlanAssignedToAthleteIds: arrayRemove(athleteId)
+        });
+      });
+      
+      await batch.commit();
+
       toast({
         title: 'Ficha Desvinculada',
         description: `O treino foi removido de ${athleteName}.`,

@@ -78,7 +78,7 @@ export default function AdminDashboard() {
           >
             <Dumbbell className="w-6 h-6 mr-4 text-primary" />
             <div className="text-left">
-              <div>Montar Nova Ficha</div>
+              <div>Montar Novo Plano</div>
               <div className="text-sm font-normal text-muted-foreground">Criar um treino do zero</div>
             </div>
           </Button>

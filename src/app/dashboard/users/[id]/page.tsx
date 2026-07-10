@@ -282,7 +282,7 @@ function WorkoutAssignmentSection({ athleteId }: { athleteId: string }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Dumbbell className="w-5 h-5 text-primary" />
-            Vincular Nova Ficha
+            Vincular Novo Plano
           </CardTitle>
           <CardDescription>Atribua um plano de treinamento para este aluno.</CardDescription>
         </CardHeader>

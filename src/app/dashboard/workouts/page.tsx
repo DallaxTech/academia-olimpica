@@ -59,7 +59,7 @@ export default function WorkoutsPage() {
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
   const [genderFilter, setGenderFilter] = useState('all');
-  const [activeTab, setActiveTab] = useState<'regular' | 'personalized'>('regular');
+  const [activeTab, setActiveTab] = useState<'preConfigured' | 'personalized' | 'regular'>('preConfigured');
 
   const trainingPlansRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -74,8 +74,10 @@ export default function WorkoutsPage() {
   const filteredPlans = plans?.filter((plan: any) => {
     // 1. Tab filter
     const isPersonalized = plan.isPersonalized === true;
-    if (activeTab === 'regular' && isPersonalized) return false;
+    const isPreConfigured = plan.isPreConfigured === true;
+    if (activeTab === 'preConfigured' && !isPreConfigured) return false;
     if (activeTab === 'personalized' && !isPersonalized) return false;
+    if (activeTab === 'regular' && (isPersonalized || isPreConfigured)) return false;
 
     // 2. Search term match
     const name = plan.name?.toLowerCase() || '';
@@ -108,7 +110,12 @@ export default function WorkoutsPage() {
         title="Gestão de Treinos"
         description="Crie e gerencie as fichas de treinamento da sua academia."
       >
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" className="border-primary/20 text-primary hover:bg-primary/5">
+            <Link href="/dashboard/workouts/personalizado?preConfigured=true">
+              <PlusCircle className="w-4 h-4 mr-2" /> Criar Treino Pré-Configurado
+            </Link>
+          </Button>
           <Button asChild variant="outline" className="border-primary/20 text-primary hover:bg-primary/5">
             <Link href="/dashboard/workouts/personalizado">
               <PlusCircle className="w-4 h-4 mr-2" /> Criar Plano Personalizado
@@ -116,7 +123,7 @@ export default function WorkoutsPage() {
           </Button>
           <Button asChild>
             <Link href="/dashboard/workouts/novo">
-              <PlusCircle className="w-4 h-4 mr-2" /> Nova Ficha
+              <PlusCircle className="w-4 h-4 mr-2" /> Novo Plano
             </Link>
           </Button>
         </div>
@@ -125,14 +132,14 @@ export default function WorkoutsPage() {
       {/* Tabs */}
       <div className="flex border-b border-border gap-2">
         <button
-          onClick={() => setActiveTab('regular')}
+          onClick={() => setActiveTab('preConfigured')}
           className={`py-2 px-4 font-bold text-sm border-b-2 transition-all ${
-            activeTab === 'regular'
+            activeTab === 'preConfigured'
               ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          Treinos Regulares
+          Treinos Pré-Configurados
         </button>
         <button
           onClick={() => setActiveTab('personalized')}
@@ -143,6 +150,16 @@ export default function WorkoutsPage() {
           }`}
         >
           Treinos Personalizados
+        </button>
+        <button
+          onClick={() => setActiveTab('regular')}
+          className={`py-2 px-4 font-bold text-sm border-b-2 transition-all ${
+            activeTab === 'regular'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Treinos Regulares
         </button>
       </div>
 

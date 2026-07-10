@@ -48,6 +48,10 @@ function PersonalizedWorkoutBuilderInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get('id');
+  const [isPreConfigured, setIsPreConfigured] = useState(() => searchParams.get('preConfigured') === 'true');
+  const [planName, setPlanName] = useState('');
+  const [assignedAthleteIds, setAssignedAthleteIds] = useState<string[]>([]);
+  const [gender, setGender] = useState<'male' | 'female'>('male');
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -188,6 +192,11 @@ function PersonalizedWorkoutBuilderInner() {
         if (planDoc.exists()) {
           const planData = planDoc.data();
           
+          setIsPreConfigured(planData.isPreConfigured === true);
+          setPlanName(planData.name || '');
+          setGender(planData.gender || 'male');
+          setAssignedAthleteIds(planData.assignedToAthleteIds || []);
+          
           setSelectedObjective(planData.objectiveName || '');
           setObjectiveSearch(planData.objectiveName || '');
           
@@ -247,6 +256,9 @@ function PersonalizedWorkoutBuilderInner() {
     setSelectedAthlete(athlete);
     setAthleteSearch(`${athlete.firstName} ${athlete.lastName || ''}`);
     setShowAthleteList(false);
+    if (athlete.gender) {
+      setGender(athlete.gender.toLowerCase() === 'female' ? 'female' : 'male');
+    }
   };
 
   // Toggle multi-select items
@@ -289,13 +301,24 @@ function PersonalizedWorkoutBuilderInner() {
 
   // Save personalized plan to Firestore
   const handleSavePlan = async () => {
-    if (!selectedAthlete) {
-      toast({
-        variant: 'destructive',
-        title: 'Selecione um Aluno',
-        description: 'É necessário vincular este plano a um aluno.',
-      });
-      return;
+    if (isPreConfigured) {
+      if (!planName.trim()) {
+        toast({
+          variant: 'destructive',
+          title: 'Nome do Treino',
+          description: 'Por favor, insira o nome do treino pré-configurado.',
+        });
+        return;
+      }
+    } else {
+      if (!selectedAthlete) {
+        toast({
+          variant: 'destructive',
+          title: 'Selecione um Aluno',
+          description: 'É necessário vincular este plano a um aluno.',
+        });
+        return;
+      }
     }
 
     if (workoutExercises.some(ex => !ex.name.trim())) {
@@ -313,16 +336,15 @@ function PersonalizedWorkoutBuilderInner() {
     try {
       const batch = writeBatch(firestore);
       const planRef = editId ? doc(firestore, 'trainingPlans', editId) : doc(collection(firestore, 'trainingPlans'));
-      const athleteName = `${selectedAthlete.firstName} ${selectedAthlete.lastName || ''}`;
+      const athleteName = selectedAthlete ? `${selectedAthlete.firstName} ${selectedAthlete.lastName || ''}` : '';
 
       // 1. Create main training plan metadata
       const planData: any = {
-        name: `Plano Personalizado - ${athleteName}`,
+        name: isPreConfigured ? planName.trim() : `Plano Personalizado - ${athleteName}`,
         description: `Treino focado em ${selectedObjective || 'Geral'}. Periodização: ${selectedPhase || 'Fase Geral'}. Método: ${selectedMethod || 'Padrão'}.`,
-        isPersonalized: true,
-        athleteId: selectedAthlete.id,
-        athleteName: athleteName,
-        assignedToAthleteIds: [selectedAthlete.id],
+        isPersonalized: !isPreConfigured,
+        isPreConfigured: isPreConfigured,
+        gender: gender,
         objectiveName: selectedObjective,
         methodName: selectedMethod,
         rhythmName: selectedRhythm,
@@ -336,6 +358,18 @@ function PersonalizedWorkoutBuilderInner() {
         selectedPostWorkouts,
         updatedAt: serverTimestamp(),
       };
+
+      if (isPreConfigured) {
+        planData.athleteId = null;
+        planData.athleteName = null;
+        if (!editId) {
+          planData.assignedToAthleteIds = [];
+        }
+      } else {
+        planData.athleteId = selectedAthlete!.id;
+        planData.athleteName = athleteName;
+        planData.assignedToAthleteIds = [selectedAthlete!.id];
+      }
 
       if (!editId) {
         planData.id = planRef.id;
@@ -367,7 +401,7 @@ function PersonalizedWorkoutBuilderInner() {
         dayOrder: 1,
         name: 'Treino A',
         trainingPlanOwnerId: user.uid,
-        trainingPlanAssignedToAthleteIds: [selectedAthlete.id],
+        trainingPlanAssignedToAthleteIds: isPreConfigured ? assignedAthleteIds : [selectedAthlete!.id],
         exercises: workoutExercises.map((ex, index) => ({
           id: ex.id || `exercise-${index}`,
           exerciseName: ex.name,
@@ -387,8 +421,10 @@ function PersonalizedWorkoutBuilderInner() {
       toast({
         title: editId ? 'Plano Atualizado com Sucesso!' : 'Plano Salvo com Sucesso!',
         description: editId 
-          ? `O plano de treino de ${athleteName} foi atualizado.`
-          : `O plano de treino personalizado foi atribuído a ${athleteName}.`,
+          ? 'O plano de treino foi atualizado.'
+          : isPreConfigured
+            ? 'O treino pré-configurado foi criado com sucesso.'
+            : `O plano de treino personalizado foi atribuído a ${athleteName}.`,
       });
 
       // Redirect back to workouts list
@@ -459,8 +495,16 @@ function PersonalizedWorkoutBuilderInner() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary">Criar Plano Personalizado</h1>
-            <p className="text-muted-foreground text-sm">Monte treinos individuais vinculando objetivos, ritmos e métodos específicos.</p>
+            <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary">
+              {editId 
+                ? (isPreConfigured ? 'Editar Treino Pré-Configurado' : 'Editar Plano Personalizado') 
+                : (isPreConfigured ? 'Criar Treino Pré-Configurado' : 'Criar Plano Personalizado')}
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {isPreConfigured 
+                ? 'Monte modelos de treino reutilizáveis que podem ser vinculados a múltiplos alunos depois.' 
+                : 'Monte treinos individuais vinculando objetivos, ritmos e métodos específicos.'}
+            </p>
           </div>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
@@ -479,81 +523,162 @@ function PersonalizedWorkoutBuilderInner() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left Column: Configs */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Athlete Selector Card */}
-          <Card className="border-primary/10 bg-card/40 backdrop-blur-sm relative focus-within:z-40 z-20">
-            <CardHeader className="py-4 border-b">
-              <CardTitle className="text-base flex items-center gap-2 text-foreground font-headline">
-                <User className="h-4 w-4 text-primary" />
-                Vincular ao Aluno
-              </CardTitle>
-            </CardHeader>
-            <CardContent className={`pt-4 relative ${showAthleteList ? 'z-50' : 'z-10'}`}>
-              <div className="space-y-2">
-                <Label htmlFor="athlete-search">Selecionar Aluno</Label>
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+          {isPreConfigured ? (
+            <Card className="border-primary/10 bg-card/40 backdrop-blur-sm relative z-20">
+              <CardHeader className="py-4 border-b">
+                <CardTitle className="text-base flex items-center gap-2 text-foreground font-headline">
+                  <Dumbbell className="h-4 w-4 text-primary" />
+                  Identificação do Modelo
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="plan-name">Nome do Treino Pré-Configurado</Label>
                   <Input 
-                    id="athlete-search"
-                    placeholder="Digite o nome do aluno..."
-                    value={athleteSearch}
-                    onChange={(e) => {
-                      setAthleteSearch(e.target.value);
-                      setShowAthleteList(true);
-                      if (selectedAthlete) setSelectedAthlete(null);
-                    }}
-                    onFocus={() => setShowAthleteList(true)}
-                    className="pl-9 bg-background/50 border-primary/20 text-base"
+                    id="plan-name"
+                    placeholder="Ex: Treino de Hipertrofia Avançado"
+                    value={planName}
+                    onChange={(e) => setPlanName(e.target.value)}
+                    className="bg-background/50 border-primary/20 text-base font-semibold"
                     required
                   />
+                  <p className="text-xs text-muted-foreground">Este nome será exibido na listagem de modelos e para os alunos vinculados.</p>
                 </div>
-
-                {/* Athlete Dropdown */}
-                {showAthleteList && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-40 bg-transparent" 
-                      onClick={() => setShowAthleteList(false)}
-                    />
-                    <Card className="absolute left-4 right-4 z-50 mt-1 max-h-56 overflow-y-auto shadow-2xl border-primary/10 bg-popover text-foreground">
-                      <div className="p-2 space-y-1">
-                        {filteredAthletes.map(athlete => (
-                          <button
-                            key={athlete.id}
-                            onClick={() => selectAthlete(athlete)}
-                            className="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-primary/15 hover:text-primary font-medium relative z-50"
-                          >
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-xs text-primary">
-                              {athlete.firstName[0].toUpperCase()}
-                            </div>
-                            <div>
-                              <p className="font-semibold">{`${athlete.firstName} ${athlete.lastName || ''}`}</p>
-                              <p className="text-xs text-muted-foreground">{athlete.email}</p>
-                            </div>
-                          </button>
-                        ))}
-                        {filteredAthletes.length === 0 && (
-                          <p className="text-xs text-center p-4 text-muted-foreground">Nenhum aluno encontrado.</p>
-                        )}
-                      </div>
-                    </Card>
-                  </>
-                )}
-
-                {selectedAthlete && (
-                  <div className="mt-3 flex items-center gap-3 p-3 bg-primary/10 rounded-xl border border-primary/20">
-                    <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center font-bold text-primary-foreground text-sm">
-                      {selectedAthlete.firstName[0].toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-foreground">{`${selectedAthlete.firstName} ${selectedAthlete.lastName || ''}`}</p>
-                      <p className="text-xs text-muted-foreground">{selectedAthlete.email}</p>
-                    </div>
-                    <Badge className="ml-auto bg-primary text-primary-foreground font-bold">Selecionado</Badge>
+                <div className="space-y-2 pt-2 border-t border-primary/5">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Gênero Alvo</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setGender('male')}
+                      className={`py-2 px-4 rounded-xl border text-sm font-bold transition-all ${
+                        gender === 'male'
+                          ? 'bg-blue-600/10 border-blue-500/50 text-blue-500 font-bold shadow-sm'
+                          : 'border-primary/10 hover:bg-muted/30 text-muted-foreground'
+                      }`}
+                    >
+                      Homem
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGender('female')}
+                      className={`py-2 px-4 rounded-xl border text-sm font-bold transition-all ${
+                        gender === 'female'
+                          ? 'bg-pink-500/10 border-pink-500/50 text-pink-500 font-bold shadow-sm'
+                          : 'border-primary/10 hover:bg-muted/30 text-muted-foreground'
+                      }`}
+                    >
+                      Mulher
+                    </button>
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-primary/10 bg-card/40 backdrop-blur-sm relative focus-within:z-40 z-20">
+              <CardHeader className="py-4 border-b">
+                <CardTitle className="text-base flex items-center gap-2 text-foreground font-headline">
+                  <User className="h-4 w-4 text-primary" />
+                  Vincular ao Aluno
+                </CardTitle>
+              </CardHeader>
+              <CardContent className={`pt-4 relative ${showAthleteList ? 'z-50' : 'z-10'}`}>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="athlete-search">Selecionar Aluno</Label>
+                    <div className="relative">
+                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                      <Input 
+                        id="athlete-search"
+                        placeholder="Digite o nome do aluno..."
+                        value={athleteSearch}
+                        onChange={(e) => {
+                          setAthleteSearch(e.target.value);
+                          setShowAthleteList(true);
+                          if (selectedAthlete) setSelectedAthlete(null);
+                        }}
+                        onFocus={() => setShowAthleteList(true)}
+                        className="pl-9 bg-background/50 border-primary/20 text-base"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Athlete Dropdown */}
+                  {showAthleteList && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40 bg-transparent" 
+                        onClick={() => setShowAthleteList(false)}
+                      />
+                      <Card className="absolute left-4 right-4 z-50 mt-1 max-h-56 overflow-y-auto shadow-2xl border-primary/10 bg-popover text-foreground">
+                        <div className="p-2 space-y-1">
+                          {filteredAthletes.map(athlete => (
+                            <button
+                              key={athlete.id}
+                              onClick={() => selectAthlete(athlete)}
+                              className="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-primary/15 hover:text-primary font-medium relative z-50"
+                            >
+                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-xs text-primary">
+                                {athlete.firstName[0].toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-semibold">{`${athlete.firstName} ${athlete.lastName || ''}`}</p>
+                                <p className="text-xs text-muted-foreground">{athlete.email}</p>
+                              </div>
+                            </button>
+                          ))}
+                          {filteredAthletes.length === 0 && (
+                            <p className="text-xs text-center p-4 text-muted-foreground">Nenhum aluno encontrado.</p>
+                          )}
+                        </div>
+                      </Card>
+                    </>
+                  )}
+
+                  {selectedAthlete && (
+                    <div className="mt-1 flex items-center gap-3 p-3 bg-primary/10 rounded-xl border border-primary/20">
+                      <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center font-bold text-primary-foreground text-sm">
+                        {selectedAthlete.firstName[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-foreground">{`${selectedAthlete.firstName} ${selectedAthlete.lastName || ''}`}</p>
+                        <p className="text-xs text-muted-foreground">{selectedAthlete.email}</p>
+                      </div>
+                      <Badge className="ml-auto bg-primary text-primary-foreground font-bold">Selecionado</Badge>
+                    </div>
+                  )}
+
+                  <div className="space-y-2 pt-3 border-t border-primary/5">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Gênero do Aluno/Ficha</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setGender('male')}
+                        className={`py-2 px-4 rounded-xl border text-sm font-bold transition-all ${
+                          gender === 'male'
+                            ? 'bg-blue-600/10 border-blue-500/50 text-blue-500 font-bold shadow-sm'
+                            : 'border-primary/10 hover:bg-muted/30 text-muted-foreground'
+                        }`}
+                      >
+                        Homem
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGender('female')}
+                        className={`py-2 px-4 rounded-xl border text-sm font-bold transition-all ${
+                          gender === 'female'
+                            ? 'bg-pink-500/10 border-pink-500/50 text-pink-500 font-bold shadow-sm'
+                            : 'border-primary/10 hover:bg-muted/30 text-muted-foreground'
+                        }`}
+                      >
+                        Mulher
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Training Plan Configs */}
           <Card className="border-primary/10 bg-card/40 backdrop-blur-sm relative focus-within:z-40 z-10">
