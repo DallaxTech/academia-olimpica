@@ -1007,7 +1007,7 @@ function PersonalizedWorkoutBuilderInner() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="bg-card border border-primary/10">
                       <DropdownMenuItem 
-                        onClick={() => renameTab(idx)}
+                        onSelect={() => renameTab(idx)}
                         className="flex items-center gap-2 cursor-pointer text-xs font-semibold hover:bg-primary/5"
                       >
                         <RefreshCw className="w-3 h-3 text-muted-foreground" />
@@ -1015,7 +1015,7 @@ function PersonalizedWorkoutBuilderInner() {
                       </DropdownMenuItem>
                       {tabs.length > 1 && (
                         <DropdownMenuItem 
-                          onClick={() => deleteTab(idx)}
+                          onSelect={() => deleteTab(idx)}
                           className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-red-500 hover:bg-red-500/10 focus:text-red-500 focus:bg-red-500/10"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
