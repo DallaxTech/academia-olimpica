@@ -42,6 +42,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface CustomExercise {
   id: string;
@@ -179,6 +187,23 @@ function PersonalizedWorkoutBuilderInner() {
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [isTabDraggable, setIsTabDraggable] = useState(false);
 
+  // Custom dialogs to handle sandbox-safe prompts and confirmations
+  const [isAddPhaseOpen, setIsAddPhaseOpen] = useState(false);
+  const [newPhaseName, setNewPhaseName] = useState('');
+
+  const [isRenamePhaseOpen, setIsRenamePhaseOpen] = useState(false);
+  const [renamePhaseIdx, setRenamePhaseIdx] = useState<number | null>(null);
+  const [renamePhaseValue, setRenamePhaseValue] = useState('');
+
+  const [isDeletePhaseOpen, setIsDeletePhaseOpen] = useState(false);
+  const [deletePhaseIdx, setDeletePhaseIdx] = useState<number | null>(null);
+
+  const [isDeleteDayOpen, setIsDeleteDayOpen] = useState(false);
+  const [deleteDayIdx, setDeleteDayIdx] = useState<number | null>(null);
+
+  const [isReorderPhaseOpen, setIsReorderPhaseOpen] = useState(false);
+  const [reorderParams, setReorderParams] = useState<{ dragged: number; target: number } | null>(null);
+
   const saveActiveToTab = (tabIdx: number, dayIdx: number) => {
     setTabs(prev => {
       if (tabIdx < 0 || tabIdx >= prev.length) return prev;
@@ -239,14 +264,17 @@ function PersonalizedWorkoutBuilderInner() {
   };
 
   const addTab = () => {
-    const name = prompt("Nome da nova aba/fase (Ex: A1, R2, B3):");
-    if (!name || !name.trim()) return;
+    setNewPhaseName('');
+    setIsAddPhaseOpen(true);
+  };
+
+  const handleAddTabConfirm = () => {
+    if (!newPhaseName || !newPhaseName.trim()) return;
     
-    // Save current active state to the current active tab
     saveActiveToTab(activeTabIdx, activeDayIdx);
 
     const newTab: WorkoutTab = {
-      name: name.trim(),
+      name: newPhaseName.trim(),
       isEnabled: true,
       objectiveName: selectedObjective,
       methodName: selectedMethod,
@@ -274,11 +302,19 @@ function PersonalizedWorkoutBuilderInner() {
       }, 50);
       return nextTabs;
     });
+
+    setIsAddPhaseOpen(false);
   };
 
   const deleteTab = (index: number) => {
     if (tabs.length <= 1) return;
-    if (!confirm(`Deseja realmente excluir a aba "${tabs[index].name}"?`)) return;
+    setDeletePhaseIdx(index);
+    setIsDeletePhaseOpen(true);
+  };
+
+  const handleDeleteTabConfirm = () => {
+    if (deletePhaseIdx === null) return;
+    const index = deletePhaseIdx;
 
     let targetTabIdx = activeTabIdx;
     if (activeTabIdx === index) {
@@ -294,19 +330,30 @@ function PersonalizedWorkoutBuilderInner() {
       }, 50);
       return nextTabs;
     });
+
+    setIsDeletePhaseOpen(false);
+    setDeletePhaseIdx(null);
   };
 
   const renameTab = (index: number) => {
-    const newName = prompt(`Novo nome para a aba "${tabs[index].name}":`, tabs[index].name);
-    if (!newName || !newName.trim()) return;
+    setRenamePhaseIdx(index);
+    setRenamePhaseValue(tabs[index]?.name || '');
+    setIsRenamePhaseOpen(true);
+  };
+
+  const handleRenameTabConfirm = () => {
+    if (renamePhaseIdx === null || !renamePhaseValue.trim()) return;
 
     setTabs(prev => {
       const nextTabs = [...prev];
-      if (nextTabs[index]) {
-        nextTabs[index].name = newName.trim();
+      if (nextTabs[renamePhaseIdx]) {
+        nextTabs[renamePhaseIdx].name = renamePhaseValue.trim();
       }
       return nextTabs;
     });
+
+    setIsRenamePhaseOpen(false);
+    setRenamePhaseIdx(null);
   };
 
   const addWorkoutDayToActiveTab = () => {
@@ -346,7 +393,15 @@ function PersonalizedWorkoutBuilderInner() {
   const removeWorkoutDayFromActiveTab = (dayIndex: number) => {
     const currentTab = tabs[activeTabIdx];
     if (!currentTab || currentTab.days.length <= 1) return;
-    if (!confirm(`Deseja realmente remover a ficha "${currentTab.days[dayIndex].name}"?`)) return;
+    setDeleteDayIdx(dayIndex);
+    setIsDeleteDayOpen(true);
+  };
+
+  const handleDeleteDayConfirm = () => {
+    if (deleteDayIdx === null) return;
+    const currentTab = tabs[activeTabIdx];
+    if (!currentTab) return;
+    const dayIndex = deleteDayIdx;
 
     let targetDayIdx = activeDayIdx;
     if (activeDayIdx === dayIndex) {
@@ -369,6 +424,9 @@ function PersonalizedWorkoutBuilderInner() {
     setTimeout(() => {
       switchTabOrDay(activeTabIdx, targetDayIdx);
     }, 50);
+
+    setIsDeleteDayOpen(false);
+    setDeleteDayIdx(null);
   };
 
   const [draggedTabIdx, setDraggedTabIdx] = useState<number | null>(null);
@@ -382,26 +440,27 @@ function PersonalizedWorkoutBuilderInner() {
     e.preventDefault();
     if (draggedTabIdx === null || draggedTabIdx === targetIndex) return;
 
-    const confirmChange = confirm(
-      `Deseja alterar a ordem das fases? A aba "${tabs[draggedTabIdx].name}" será movida para a posição da aba "${tabs[targetIndex].name}".`
-    );
-    if (!confirmChange) {
-      setDraggedTabIdx(null);
-      return;
-    }
+    setReorderParams({ dragged: draggedTabIdx, target: targetIndex });
+    setIsReorderPhaseOpen(true);
+    setDraggedTabIdx(null);
+  };
+
+  const handleReorderConfirm = () => {
+    if (!reorderParams) return;
+    const { dragged, target } = reorderParams;
 
     // Save active state of current active tab first
     saveActiveToTab(activeTabIdx, activeDayIdx);
 
     setTabs(prev => {
       const nextTabs = [...prev];
-      const [draggedItem] = nextTabs.splice(draggedTabIdx, 1);
-      nextTabs.splice(targetIndex, 0, draggedItem);
+      const [draggedItem] = nextTabs.splice(dragged, 1);
+      nextTabs.splice(target, 0, draggedItem);
 
       // Determine new active index of currently viewed tab
       let newActiveIdx = activeTabIdx;
-      if (activeTabIdx === draggedTabIdx) {
-        newActiveIdx = targetIndex;
+      if (activeTabIdx === dragged) {
+        newActiveIdx = target;
       } else {
         const oldIdx = nextTabs.findIndex(t => t.name === prev[activeTabIdx].name);
         if (oldIdx !== -1) {
@@ -416,7 +475,8 @@ function PersonalizedWorkoutBuilderInner() {
       return nextTabs;
     });
 
-    setDraggedTabIdx(null);
+    setIsReorderPhaseOpen(false);
+    setReorderParams(null);
   };
 
   // Load libraries from Firestore onSnapshot (realtime)
@@ -1642,10 +1702,105 @@ function PersonalizedWorkoutBuilderInner() {
                 </ScrollArea>
               </CardContent>
             </Card>
-
           </div>
         </div>
       </div>
+
+      {/* Dialog Modals */}
+      {/* 1. Add Phase Modal */}
+      <Dialog open={isAddPhaseOpen} onOpenChange={setIsAddPhaseOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Nova Fase de Periodização</DialogTitle>
+            <DialogDescription>
+              Digite o identificador da nova fase (Ex: A1, R2, H1).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input 
+              value={newPhaseName} 
+              onChange={(e) => setNewPhaseName(e.target.value)} 
+              placeholder="Ex: R2"
+              className="col-span-3 text-base font-bold bg-background/50"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddPhaseOpen(false)}>Cancelar</Button>
+            <Button onClick={handleAddTabConfirm}>Adicionar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 2. Rename Phase Modal */}
+      <Dialog open={isRenamePhaseOpen} onOpenChange={setIsRenamePhaseOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Renomear Fase</DialogTitle>
+            <DialogDescription>
+              Altere o nome da fase selecionada.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input 
+              value={renamePhaseValue} 
+              onChange={(e) => setRenamePhaseValue(e.target.value)} 
+              className="col-span-3 text-base font-bold bg-background/50"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRenamePhaseOpen(false)}>Cancelar</Button>
+            <Button onClick={handleRenameTabConfirm}>Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 3. Delete Phase Modal */}
+      <Dialog open={isDeletePhaseOpen} onOpenChange={setIsDeletePhaseOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-red-500">Excluir Fase?</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja apagar esta fase? Esta ação excluirá todos os exercícios e dias salvos nela e não poderá ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsDeletePhaseOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDeleteTabConfirm}>Excluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 4. Delete Day Modal */}
+      <Dialog open={isDeleteDayOpen} onOpenChange={setIsDeleteDayOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-red-500">Remover Ficha de Treino?</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja remover esta ficha diária? Todos os exercícios vinculados a este dia nesta fase serão perdidos.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsDeleteDayOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDeleteDayConfirm}>Remover</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 5. Reorder Phase Modal */}
+      <Dialog open={isReorderPhaseOpen} onOpenChange={setIsReorderPhaseOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Alterar Ordem das Fases?</DialogTitle>
+            <DialogDescription>
+              Confirmar alteração na ordem das fases de periodização do treino?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => { setIsReorderPhaseOpen(false); setReorderParams(null); }}>Cancelar</Button>
+            <Button onClick={handleReorderConfirm}>Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
