@@ -141,10 +141,13 @@ function PersonalizedWorkoutBuilderInner() {
   ]);
 
   // Periodic Tabs States
-  const [tabs, setTabs] = useState<WorkoutTab[]>([
-    {
-      name: 'A1',
-      isEnabled: true,
+  const [tabs, setTabs] = useState<WorkoutTab[]>(() => {
+    const sequence = [
+      'A1', 'R1', 'R2', 'H1', 'R3', 'R4', 'H2', 'T1', 'R5', 'H3', 'R6', 'R7', 'H4', 'R8', 'R9', 'H5', 'R10'
+    ];
+    return sequence.map((name, idx) => ({
+      name,
+      isEnabled: idx === 0,
       objectiveName: '',
       methodName: '',
       rhythmName: '',
@@ -162,8 +165,8 @@ function PersonalizedWorkoutBuilderInner() {
           exercises: [{ id: 'ex-1', name: '', sets: 3, reps: '10', load: '' }]
         }
       ]
-    }
-  ]);
+    }));
+  });
   const [activeTabIdx, setActiveTabIdx] = useState(0);
   const [activeDayIdx, setActiveDayIdx] = useState(0);
 
@@ -357,6 +360,54 @@ function PersonalizedWorkoutBuilderInner() {
     setTimeout(() => {
       switchTabOrDay(activeTabIdx, targetDayIdx);
     }, 50);
+  };
+
+  const [draggedTabIdx, setDraggedTabIdx] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedTabIdx(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedTabIdx === null || draggedTabIdx === targetIndex) return;
+
+    const confirmChange = confirm(
+      `Deseja alterar a ordem das fases? A aba "${tabs[draggedTabIdx].name}" será movida para a posição da aba "${tabs[targetIndex].name}".`
+    );
+    if (!confirmChange) {
+      setDraggedTabIdx(null);
+      return;
+    }
+
+    // Save active state of current active tab first
+    saveActiveToTab(activeTabIdx, activeDayIdx);
+
+    setTabs(prev => {
+      const nextTabs = [...prev];
+      const [draggedItem] = nextTabs.splice(draggedTabIdx, 1);
+      nextTabs.splice(targetIndex, 0, draggedItem);
+
+      // Determine new active index of currently viewed tab
+      let newActiveIdx = activeTabIdx;
+      if (activeTabIdx === draggedTabIdx) {
+        newActiveIdx = targetIndex;
+      } else {
+        const oldIdx = nextTabs.findIndex(t => t.name === prev[activeTabIdx].name);
+        if (oldIdx !== -1) {
+          newActiveIdx = oldIdx;
+        }
+      }
+
+      setTimeout(() => {
+        switchTabOrDay(newActiveIdx, 0);
+      }, 50);
+
+      return nextTabs;
+    });
+
+    setDraggedTabIdx(null);
   };
 
   // Load libraries from Firestore onSnapshot (realtime)
@@ -906,7 +957,15 @@ function PersonalizedWorkoutBuilderInner() {
             {tabs.map((tab, idx) => {
               const isActive = idx === activeTabIdx;
               return (
-                <div key={idx} className="flex items-center bg-background/35 rounded-xl border border-primary/5 p-1 gap-1">
+                <div 
+                  key={idx} 
+                  draggable={true}
+                  onDragStart={(e) => handleDragStart(e, idx)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => handleDrop(e, idx)}
+                  className="flex items-center bg-background/35 rounded-xl border border-primary/5 p-1 gap-1 cursor-grab active:cursor-grabbing hover:border-primary/20 transition-all shadow-sm"
+                  title="Segure e arraste para mudar a ordem das fases"
+                >
                   <Button
                     type="button"
                     variant={isActive ? "default" : "ghost"}
