@@ -268,9 +268,22 @@ export default function WorkoutPlayer({ params }: { params: Promise<{ id: string
     }
   };
 
-  const handleFinishWorkout = () => {
+  const handleFinishWorkout = async () => {
     setIsFinished(true);
-    // Real implementation estaria salvando o log no Firebase aqui
+    if (firestore && user?.uid && planId) {
+      try {
+        const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+        const sessionsRef = collection(firestore, 'userProfiles', user.uid, 'workoutSessions');
+        await addDoc(sessionsRef, {
+          planId: planId,
+          dayId: selectedDayId || 'day-1',
+          dayName: activeDay?.name || 'Treino A',
+          completedAt: serverTimestamp(),
+        });
+      } catch (error) {
+        console.error('Error saving workout session log:', error);
+      }
+    }
     setTimeout(() => {
       router.push('/aluno');
     }, 3500);

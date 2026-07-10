@@ -9,6 +9,9 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { signOut } from 'firebase/auth';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from "@/components/ui/progress";
+import { CheckCircle2 } from 'lucide-react';
+import { useMemo } from 'react';
 
 export default function AlunoDashboard() {
   const router = useRouter();
@@ -40,8 +43,38 @@ export default function AlunoDashboard() {
   const { data: plans, isLoading: loadingPlans } = useCollection(assignedPlansQuery);
   const activePlan = plans && plans.length > 0 ? plans[0] : null;
 
-  // Streak/Progress stats (would ideally be from a 'userStats' collection or similar)
-  const streak = 3;
+  // Query workout sessions for the active plan
+  const sessionsQuery = useMemoFirebase(() => {
+    if (!firestore || !user || !activePlan) return null;
+    return query(
+      collection(firestore, 'userProfiles', user.uid, 'workoutSessions'),
+      where('planId', '==', activePlan.id)
+    );
+  }, [firestore, user, activePlan]);
+
+  const { data: sessions } = useCollection<any>(sessionsQuery);
+
+  // Calculate statistics
+  const durationWeeks = activePlan?.durationWeeks || 4;
+  const weeklyFrequency = activePlan?.weeklyFrequency || 3;
+  const totalExpected = durationWeeks * weeklyFrequency;
+  const completedCount = sessions?.length || 0;
+  const progressPercent = totalExpected > 0 ? Math.min(100, Math.round((completedCount / totalExpected) * 100)) : 0;
+  const isPlanCompleted = completedCount >= totalExpected;
+
+  // Check if completed a session today
+  const completedToday = useMemo(() => {
+    if (!sessions || sessions.length === 0) return false;
+    const todayStr = new Date().toLocaleDateString('pt-BR');
+    return sessions.some((s: any) => {
+      if (!s.completedAt) return false;
+      const date = s.completedAt.toDate ? s.completedAt.toDate() : new Date(s.completedAt);
+      return date.toLocaleDateString('pt-BR') === todayStr;
+    });
+  }, [sessions]);
+
+  // Streak/Progress stats (dynamic streak)
+  const streak = completedCount > 0 ? Math.min(7, completedCount) : 0;
 
   return (
     <div className="w-full max-w-md mx-auto p-4 space-y-6 pt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -81,29 +114,67 @@ export default function AlunoDashboard() {
           <CardHeader>
             <CardTitle className="text-xl flex items-center gap-2">
               <Dumbbell className="w-5 h-5 text-primary" />
-              Treino do Dia
+              {isPlanCompleted ? 'Plano Concluído!' : 'Treino do Dia'}
             </CardTitle>
-            <CardDescription>O seu planejamento de hoje</CardDescription>
+            <CardDescription>
+              {isPlanCompleted ? 'Parabéns pela conquista!' : 'O seu planejamento de hoje'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="bg-secondary/40 p-4 rounded-lg border border-border/50">
-                <h3 className="font-bold text-lg">{activePlan.name}</h3>
-                <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1"><Activity className="w-4 h-4"/> {activePlan.workoutDaysCount || activePlan.daysCount || 0} dias de treino</span>
-                  <p className="text-xs line-clamp-1 mt-1">{activePlan.description}</p>
+              {isPlanCompleted ? (
+                <div className="bg-green-500/10 border border-green-500/25 p-5 rounded-xl text-center space-y-3">
+                  <Trophy className="w-12 h-12 text-green-500 mx-auto animate-bounce" />
+                  <h3 className="font-bold text-lg text-green-500">Parabéns! Você concluiu este plano! 🏆</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Você realizou com sucesso os {totalExpected} treinos planejados. Fale com seu professor para prescrever a sua próxima ficha!
+                  </p>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-secondary/40 p-4 rounded-lg border border-border/50 space-y-4">
+                  <div>
+                    <h3 className="font-bold text-lg">{activePlan.name}</h3>
+                    <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1"><Activity className="w-4 h-4"/> {activePlan.workoutDaysCount || activePlan.daysCount || 1} dias de treino</span>
+                      <p className="text-xs line-clamp-1 mt-1">{activePlan.description}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="space-y-1.5 pt-2 border-t border-border/40">
+                    <div className="flex justify-between text-xs font-bold text-muted-foreground">
+                      <span>Progresso da Ficha</span>
+                      <span>{completedCount} de {totalExpected} treinos ({progressPercent}%)</span>
+                    </div>
+                    <Progress value={progressPercent} className="h-2 bg-secondary" />
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
           <CardFooter>
-            <Button 
-              className="w-full text-lg h-14 font-bold shadow-lg shadow-primary/20 transition-transform active:scale-95" 
-              size="lg"
-              onClick={() => router.push(`/aluno/treino/${activePlan.id}`)}
-            >
-              Começar Treino
-            </Button>
+            {isPlanCompleted ? (
+              <Button 
+                className="w-full text-lg h-14 font-bold transition-transform active:scale-95 bg-secondary text-foreground hover:bg-secondary/85" 
+                size="lg"
+                onClick={() => router.push(`/aluno/treino/${activePlan.id}`)}
+              >
+                Refazer Treino Extra
+              </Button>
+            ) : completedToday ? (
+              <div className="w-full text-lg h-14 font-bold bg-green-600/10 border border-green-500/30 text-green-500 rounded-xl flex items-center justify-center gap-2 select-none">
+                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                Treino de Hoje Concluído! 🔥
+              </div>
+            ) : (
+              <Button 
+                className="w-full text-lg h-14 font-bold shadow-lg shadow-primary/20 transition-transform active:scale-95" 
+                size="lg"
+                onClick={() => router.push(`/aluno/treino/${activePlan.id}`)}
+              >
+                Começar Treino
+              </Button>
+            )}
           </CardFooter>
         </Card>
       ) : (

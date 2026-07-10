@@ -100,6 +100,8 @@ function PersonalizedWorkoutBuilderInner() {
   const [loadPercentage, setLoadPercentage] = useState(50);
   const [restSeconds, setRestSeconds] = useState(60);
   const [durationFrequency, setDurationFrequency] = useState('4 semanas, 3x por semana');
+  const [durationWeeks, setDurationWeeks] = useState(4);
+  const [weeklyFrequency, setWeeklyFrequency] = useState(3);
   const [expirationDate, setExpirationDate] = useState(() => {
     const date = new Date();
     date.setDate(date.getDate() + 30); // 30 days from now
@@ -212,6 +214,8 @@ function PersonalizedWorkoutBuilderInner() {
           setLoadPercentage(planData.loadPercentage ?? 50);
           setRestSeconds(planData.restSeconds ?? 60);
           setDurationFrequency(planData.durationFrequency || '');
+          setDurationWeeks(planData.durationWeeks ?? 4);
+          setWeeklyFrequency(planData.weeklyFrequency ?? 3);
           setExpirationDate(planData.expirationDate || '');
           
           setSelectedEquipments(planData.selectedEquipments || []);
@@ -351,7 +355,9 @@ function PersonalizedWorkoutBuilderInner() {
         phaseName: selectedPhase,
         loadPercentage: Number(loadPercentage),
         restSeconds: Number(restSeconds),
-        durationFrequency: durationFrequency.trim(),
+        durationWeeks: Number(durationWeeks),
+        weeklyFrequency: Number(weeklyFrequency),
+        durationFrequency: `${durationWeeks} semanas, ${weeklyFrequency}x por semana`,
         expirationDate: expirationDate,
         selectedEquipments,
         selectedPreWorkouts,
@@ -782,15 +788,30 @@ function PersonalizedWorkoutBuilderInner() {
               </div>
 
               {/* Duration and Expiration */}
-              <div className="space-y-2 pt-2">
-                <Label htmlFor="duration">Duração / Frequência</Label>
-                <Input 
-                  id="duration"
-                  placeholder="Ex: 4 semanas, 3x na semana"
-                  value={durationFrequency}
-                  onChange={(e) => setDurationFrequency(e.target.value)}
-                  className="bg-background/50 border-primary/20 text-base"
-                />
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="duration-weeks">Duração (Semanas)</Label>
+                  <Input 
+                    id="duration-weeks"
+                    type="number"
+                    min={1}
+                    value={durationWeeks}
+                    onChange={(e) => setDurationWeeks(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="bg-background/50 border-primary/20 text-base font-bold text-center"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="weekly-freq">Frequência Semanal</Label>
+                  <Input 
+                    id="weekly-freq"
+                    type="number"
+                    min={1}
+                    max={7}
+                    value={weeklyFrequency}
+                    onChange={(e) => setWeeklyFrequency(Math.max(1, Math.min(7, parseInt(e.target.value) || 1)))}
+                    className="bg-background/50 border-primary/20 text-base font-bold text-center"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
