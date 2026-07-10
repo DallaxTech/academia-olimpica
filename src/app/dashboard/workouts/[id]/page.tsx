@@ -249,7 +249,14 @@ export default function WorkoutDetailsPage({ params }: { params: Promise<{ id: s
                       <CardHeader className="bg-primary/5 py-4">
                         <CardTitle className="text-lg flex items-center justify-between">
                           <span>{day.name}</span>
-                          <Badge variant="outline">{day.exercises?.length || 0} Exercícios</Badge>
+                          <div className="flex gap-2 items-center">
+                            {day.isEnabled === false && (
+                              <Badge variant="destructive" className="bg-red-500/10 text-red-500 border-red-500/20 text-xs font-semibold">
+                                Desabilitado
+                              </Badge>
+                            )}
+                            <Badge variant="outline">{day.exercises?.length || 0} Exercícios</Badge>
+                          </div>
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="p-0">

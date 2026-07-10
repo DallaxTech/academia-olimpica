@@ -128,8 +128,9 @@ export default function WorkoutPlayer({ params }: { params: Promise<{ id: string
 
   const filteredDays = useMemo(() => {
     if (!days) return [];
-    if (!plan?.phases || plan.phases.length === 0) return days;
-    return days.filter((d: any) => {
+    const activeDays = days.filter((d: any) => d.isEnabled !== false);
+    if (!plan?.phases || plan.phases.length === 0) return activeDays;
+    return activeDays.filter((d: any) => {
       const pName = d.phaseName || 'A1';
       return pName.toLowerCase() === activePhaseName.toLowerCase();
     });
