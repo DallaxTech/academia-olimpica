@@ -1979,7 +1979,7 @@ function SelectBox({ placeholder, value, onChange, items, searchTerm, setSearchT
           value={value || searchTerm}
           onChange={(e) => {
             setSearchTerm(e.target.value);
-            if (value) onChange('');
+            if (value && value !== searchTerm) onChange('');
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
